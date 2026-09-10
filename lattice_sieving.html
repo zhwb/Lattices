@@ -1,0 +1,1414 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>格上找最短向量的筛法</title>
+<style>
+:root {
+  --bg: #0f1117;
+  --bg-card: #1a1d27;
+  --bg-code: #12141c;
+  --border: #2a2e3d;
+  --text: #e4e6ef;
+  --text-dim: #9ba1b5;
+  --accent: #f0a050;
+  --accent2: #7ee0c1;
+  --warn: #f0b460;
+  --danger: #f07070;
+  --purple: #b48ef0;
+  --blue: #5b9cf6;
+}
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body {
+  font-family: -apple-system, "PingFang SC", "Microsoft YaHei", "Noto Sans SC", sans-serif;
+  background: var(--bg);
+  color: var(--text);
+  line-height: 1.75;
+  font-size: 16px;
+}
+.container { max-width: 960px; margin: 0 auto; padding: 40px 24px 80px; }
+
+.hero {
+  text-align: center;
+  padding: 60px 0 40px;
+  border-bottom: 1px solid var(--border);
+  margin-bottom: 48px;
+}
+.hero h1 {
+  font-size: 2.2em;
+  font-weight: 800;
+  background: linear-gradient(135deg, var(--accent), var(--accent2));
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  margin-bottom: 12px;
+}
+.hero p { color: var(--text-dim); font-size: 1.05em; max-width: 640px; margin: 0 auto; }
+
+section { margin-bottom: 56px; }
+h2 {
+  font-size: 1.55em;
+  font-weight: 700;
+  margin-bottom: 20px;
+  padding-left: 14px;
+  border-left: 4px solid var(--accent);
+  color: var(--text);
+}
+h3 {
+  font-size: 1.2em;
+  font-weight: 600;
+  margin: 28px 0 14px;
+  color: var(--accent2);
+}
+h4 {
+  font-size: 1.05em;
+  font-weight: 600;
+  margin: 20px 0 10px;
+  color: var(--warn);
+}
+p { margin-bottom: 14px; }
+ul, ol { margin: 12px 0 16px 24px; }
+li { margin-bottom: 8px; }
+
+.card {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 20px 24px;
+  margin: 16px 0;
+}
+.card.highlight { border-left: 4px solid var(--accent); }
+.card.warn { border-left: 4px solid var(--warn); }
+.card.tip { border-left: 4px solid var(--accent2); }
+
+.analogy {
+  background: linear-gradient(135deg, rgba(240,160,80,0.08), rgba(126,224,193,0.06));
+  border: 1px solid rgba(240,160,80,0.25);
+  border-radius: 10px;
+  padding: 20px 24px;
+  margin: 18px 0;
+}
+.analogy .label {
+  display: inline-block;
+  font-size: 0.8em;
+  font-weight: 700;
+  color: var(--accent);
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  margin-bottom: 8px;
+}
+
+pre {
+  background: var(--bg-code);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 18px 20px;
+  overflow-x: auto;
+  margin: 14px 0;
+  font-size: 0.88em;
+  line-height: 1.6;
+}
+code {
+  font-family: "JetBrains Mono", "Fira Code", "Consolas", monospace;
+  color: var(--accent2);
+}
+pre code { color: var(--text); }
+.code-keyword { color: var(--purple); }
+.code-comment { color: #6b7280; font-style: italic; }
+.code-string { color: var(--warn); }
+.code-func { color: var(--blue); }
+
+.math {
+  display: block;
+  text-align: center;
+  margin: 16px 0;
+  font-family: "Cambria Math", "Latin Modern Math", serif;
+  font-size: 1.05em;
+}
+.math-inline {
+  font-family: "Cambria Math", "Latin Modern Math", serif;
+  font-style: italic;
+}
+
+table {
+  width: 100%;
+  border-collapse: collapse;
+  margin: 16px 0;
+  font-size: 0.92em;
+}
+th, td {
+  border: 1px solid var(--border);
+  padding: 10px 14px;
+  text-align: left;
+}
+th {
+  background: var(--bg-card);
+  font-weight: 600;
+  color: var(--accent);
+}
+tr:nth-child(even) { background: rgba(255,255,255,0.02); }
+
+.step-flow {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+  margin: 18px 0;
+}
+.step-item {
+  display: flex;
+  gap: 16px;
+  position: relative;
+  padding-bottom: 20px;
+}
+.step-item:last-child { padding-bottom: 0; }
+.step-num {
+  flex-shrink: 0;
+  width: 32px;
+  height: 32px;
+  background: var(--accent);
+  color: #fff;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 700;
+  font-size: 0.9em;
+}
+.step-item:not(:last-child)::after {
+  content: '';
+  position: absolute;
+  left: 15px;
+  top: 36px;
+  bottom: 0;
+  width: 2px;
+  background: var(--border);
+}
+.step-content { flex: 1; }
+.step-content strong { color: var(--accent2); }
+
+.comparison-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+  margin: 16px 0;
+}
+@media (max-width: 640px) {
+  .comparison-grid { grid-template-columns: 1fr; }
+}
+.comp-card {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 18px;
+}
+.comp-card h4 { margin-top: 0; }
+
+.lib-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 16px;
+  margin: 16px 0;
+}
+.lib-card {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 18px;
+  transition: border-color 0.2s;
+}
+.lib-card:hover { border-color: var(--accent); }
+.lib-card .lib-name {
+  font-weight: 700;
+  font-size: 1.1em;
+  color: var(--accent);
+  margin-bottom: 6px;
+}
+.lib-card .lib-lang {
+  display: inline-block;
+  font-size: 0.75em;
+  background: rgba(240,160,80,0.15);
+  color: var(--accent);
+  padding: 2px 8px;
+  border-radius: 4px;
+  margin-bottom: 8px;
+}
+.lib-card p { font-size: 0.9em; color: var(--text-dim); margin-bottom: 0; }
+
+.toc {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 20px 24px;
+  margin-bottom: 40px;
+}
+.toc h3 { margin-top: 0; color: var(--text); }
+.toc ol { margin-left: 20px; }
+.toc a { color: var(--text-dim); text-decoration: none; transition: color 0.2s; }
+.toc a:hover { color: var(--accent); }
+
+/* Sieve visualization */
+.sieve-container {
+  background: var(--bg-code);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 20px;
+  margin: 16px 0;
+}
+.sieve-svg { width: 100%; min-height: 340px; display: block; }
+.sieve-controls {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+  margin: 12px 0;
+  align-items: center;
+}
+.btn {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  color: var(--text);
+  padding: 7px 16px;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 0.9em;
+  transition: all 0.2s;
+}
+.btn:hover { border-color: var(--accent); color: var(--accent); }
+.btn.active { background: var(--accent); color: #fff; border-color: var(--accent); }
+.sieve-legend {
+  display: flex;
+  gap: 18px;
+  flex-wrap: wrap;
+  margin-top: 10px;
+  font-size: 0.85em;
+  color: var(--text-dim);
+}
+.legend-item { display: flex; align-items: center; gap: 6px; }
+.legend-dot { width: 12px; height: 12px; border-radius: 50%; }
+
+/* Complexity chart */
+.chart-container {
+  background: var(--bg-code);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 20px;
+  margin: 16px 0;
+}
+.chart-svg { width: 100%; display: block; }
+
+/* Gauss reduction geometry */
+.geom-container {
+  background: var(--bg-code);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 20px;
+  margin: 16px 0;
+}
+.geom-svg { width: 100%; max-width: 500px; display: block; margin: 0 auto; }
+
+footer {
+  text-align: center;
+  padding: 40px 0 20px;
+  border-top: 1px solid var(--border);
+  color: var(--text-dim);
+  font-size: 0.85em;
+}
+</style>
+</head>
+<body>
+<div class="container">
+
+<!-- ===== Hero ===== -->
+<div class="hero">
+  <h1>格上找最短向量的筛法</h1>
+  <p>从"淘金"到"碰撞"，搞懂比枚举更快的 SVP 求解技术——筛法（Sieving）</p>
+</div>
+
+<!-- ===== TOC ===== -->
+<div class="toc">
+  <h3>目录</h3>
+  <ol>
+    <li><a href="#sec1">为什么需要筛法？——从淘金热说起</a></li>
+    <li><a href="#sec2">筛法的核心思想：用大量随机样本"撞"出短向量</a></li>
+    <li><a href="#sec3">AKS 筛法：理论奠基之作</a></li>
+    <li><a href="#sec4">ListSieve / NV 筛法：第一代实用筛法</a></li>
+    <li><a href="#sec5">Gauss Sieve：最经典的实用筛法</a></li>
+    <li><a href="#sec6">交互式筛法过程演示</a></li>
+    <li><a href="#sec7">Tuple 筛法：用更多向量组合</a></li>
+    <li><a href="#sec8">LSH 加速：如何快速找到"相近"的向量</a></li>
+    <li><a href="#sec9">复杂度对比与工程权衡</a></li>
+    <li><a href="#sec10">最简 Python 代码实现</a></li>
+    <li><a href="#sec11">工业界使用的库</a></li>
+    <li><a href="#sec12">总结与延伸阅读</a></li>
+  </ol>
+</div>
+
+<!-- ===== Section 1 ===== -->
+<section id="sec1">
+<h2>1. 为什么需要筛法？——从淘金热说起</h2>
+
+<p>上一篇我们讲了<strong>枚举（Enumeration）</strong>：它像一个耐心的矿工，把搜索空间组织成树，一层一层地挖，保证能挖到金子，但挖得很慢——时间复杂度是 <span class="math-inline">2^{Θ(n log n)}</span>，维度高了根本挖不动。</p>
+
+<p><strong>筛法（Sieving）</strong>则完全不同。它的灵感来自"淘金"：</p>
+
+<div class="analogy">
+  <span class="label">通俗类比</span>
+  <p>想象你在一条满是泥沙的河里淘金。你不会一粒一粒地检查每颗沙子（那是枚举）。相反，你会：</p>
+  <ol>
+    <li><strong>大量取样</strong>：舀起一大盆河沙（随机采样很多格向量）</li>
+    <li><strong>粗筛</strong>：用筛子晃一晃，让大颗粒（长向量）和小颗粒（短向量）分开</li>
+    <li><strong>碰撞提纯</strong>：把两颗沙粒放一起磨一磨（向量相加/相减），如果磨出了更小的颗粒就保留</li>
+    <li><strong>反复迭代</strong>：不断取样、筛、碰撞，直到盆里剩下的都是金粒（最短向量）</li>
+  </ol>
+  <p>筛法不保证每一步都精确，但通过大量随机样本和反复"碰撞"，能以 <span class="math-inline">2^{O(n)}</span> 的时间找到最短向量——在高维下比枚举快得多！</p>
+</div>
+
+<h3>枚举 vs 筛法：核心区别</h3>
+<div class="comparison-grid">
+  <div class="comp-card">
+    <h4 style="color:var(--blue);">枚举 Enumeration</h4>
+    <ul>
+      <li>确定性算法（搜完一定找到）</li>
+      <li>多项式空间（只存当前路径）</li>
+      <li>时间 <span class="math-inline">2^{Θ(n log n)}</span></li>
+      <li>低维（β≤60）更快</li>
+      <li>像"深度搜索"，一条路走到黑</li>
+    </ul>
+  </div>
+  <div class="comp-card">
+    <h4 style="color:var(--accent);">筛法 Sieving</h4>
+    <ul>
+      <li>概率性算法（启发式，实践中总有效）</li>
+      <li>指数空间（需要存大量向量）</li>
+      <li>时间 <span class="math-inline">2^{0.292n}</span>（最佳）</li>
+      <li>高维（n>80）更快</li>
+      <li>像"广度碰撞"，大量样本互相作用</li>
+    </ul>
+  </div>
+</div>
+
+<div class="card highlight">
+  <strong>一句话总结：</strong>筛法 = 随机采样大量格向量 → 让向量之间互相"约简"（相加/相减变短）→ 反复迭代直到列表收敛到最短向量。用空间换时间，用概率换速度。
+</div>
+</section>
+
+<!-- ===== Section 2 ===== -->
+<section id="sec2">
+<h2>2. 筛法的核心思想：用大量随机样本"撞"出短向量</h2>
+
+<h3>2.1 关键观察：两个向量相减可能更短</h3>
+<p>筛法的一切都建立在一个简单事实上：对于格中的两个向量 u 和 v，如果它们的<strong>夹角比较小</strong>（方向接近），那么 u - v 很可能比 u 和 v 都短！</p>
+
+<div class="math">||u - v||² = ||u||² + ||v||² - 2⟨u, v⟩</div>
+
+<p>当 u 和 v 方向接近时，内积 ⟨u, v⟩ 很大，所以 ||u - v||² 可能远小于 ||u||² 和 ||v||²。</p>
+
+<div class="geom-container">
+  <svg class="geom-svg" viewBox="0 0 500 280">
+    <!-- 原点 -->
+    <circle cx="250" cy="200" r="4" fill="#fff"/>
+    <text x="240" y="220" fill="#9ba1b5" font-size="11">0</text>
+    <!-- 向量 u -->
+    <line x1="250" y1="200" x2="150" y2="80" stroke="#5b9cf6" stroke-width="2.5"/>
+    <polygon points="150,80 156,90 144,88" fill="#5b9cf6"/>
+    <text x="120" y="75" fill="#5b9cf6" font-size="13" font-weight="bold">u</text>
+    <!-- 向量 v -->
+    <line x1="250" y1="200" x2="180" y2="70" stroke="#7ee0c1" stroke-width="2.5"/>
+    <polygon points="180,70 186,80 174,78" fill="#7ee0c1"/>
+    <text x="185" y="65" fill="#7ee0c1" font-size="13" font-weight="bold">v</text>
+    <!-- 夹角标注 -->
+    <path d="M 220,170 A 40 40 0 0 1 200,165" fill="none" stroke="#f0b460" stroke-width="1.5"/>
+    <text x="185" y="160" fill="#f0b460" font-size="11">θ 很小</text>
+    <!-- u-v 向量 -->
+    <line x1="180" y1="70" x2="150" y2="80" stroke="#f0a050" stroke-width="2.5" stroke-dasharray="5,3"/>
+    <text x="130" y="60" fill="#f0a050" font-size="13" font-weight="bold">u-v 更短！</text>
+    <!-- 说明 -->
+    <text x="250" y="255" fill="#9ba1b5" font-size="12" text-anchor="middle">u 和 v 方向接近 → u-v 比两者都短</text>
+    <text x="250" y="272" fill="#9ba1b5" font-size="11" text-anchor="middle">这就是筛法"碰撞出短向量"的几何原理</text>
+  </svg>
+</div>
+
+<h3>2.2 筛法的基本循环</h3>
+<p>所有筛法算法都遵循同一个基本循环：</p>
+
+<div class="step-flow">
+  <div class="step-item">
+    <div class="step-num">1</div>
+    <div class="step-content">
+      <strong>采样（Sample）</strong><br>
+      用 Klein 采样算法或其他方法，从格中随机采样一个向量 v
+    </div>
+  </div>
+  <div class="step-item">
+    <div class="step-num">2</div>
+    <div class="step-content">
+      <strong>约简（Reduce）</strong><br>
+      用列表 L 中已有的向量来约简 v：对每个 w ∈ L，如果 ||v ± w|| < ||v||，就把 v 替换为 v ± w
+    </div>
+  </div>
+  <div class="step-item">
+    <div class="step-num">3</div>
+    <div class="step-content">
+      <strong>反向约简（Reduce back）</strong><br>
+      用约简后的 v 来约简列表 L 中的向量：对每个 w ∈ L，如果 ||w ± v|| < ||w||，就把 w 替换为 w ± v，并把被替换的旧 w 放回待处理队列
+    </div>
+  </div>
+  <div class="step-item">
+    <div class="step-num">4</div>
+    <div class="step-content">
+      <strong>加入列表</strong><br>
+      把最终约简后的 v 加入列表 L（如果 v ≠ 0）
+    </div>
+  </div>
+  <div class="step-item">
+    <div class="step-num">5</div>
+    <div class="step-content">
+      <strong>重复直到收敛</strong><br>
+      当列表 L 不再增长、且最短向量稳定时，输出 L 中最短的向量
+    </div>
+  </div>
+</div>
+
+<h3>2.3 为什么这样能找到最短向量？</h3>
+<p>这背后有一个关键的几何事实：<strong>Kabatiansky-Levenshtein 界</strong>。在 n 维空间中，最多只能放 <span class="math-inline">2^{0.401n}</span> 个两两夹角 ≥ 60° 的单位向量。</p>
+
+<p>筛法的约简操作保证了：列表 L 中任意两个向量的夹角都 ≥ 60°（否则它们相减会更短，就会被约简掉）。所以列表 L 的大小有上界 <span class="math-inline">2^{0.401n}</span>。当列表"满"了之后，新采样的向量几乎总能被约简到 0——这意味着列表中已经包含了足够短的向量，最短向量就在其中！</p>
+</section>
+
+<!-- ===== Section 3 ===== -->
+<section id="sec3">
+<h2>3. AKS 筛法：理论奠基之作</h2>
+
+<p>2001 年，Ajtai、Kumar 和 Sivakumar 提出了第一个单指数时间 <span class="math-inline">2^{O(n)}</span> 的 SVP 算法，这就是 <strong>AKS 筛法</strong>。它的意义不在于实用（常数极大，从未被高效实现），而在于<strong>证明了筛法这个思路在理论上是可行的</strong>。</p>
+
+<h3>3.1 AKS 的核心设计</h3>
+<p>AKS 筛法使用<strong>多轮、多列表</strong>的结构：</p>
+<ol>
+  <li>采样大量（指数级）随机格向量</li>
+  <li>按长度分成若干"桶"（sublist），每个桶内的向量长度相近</li>
+  <li>在每个桶内，把方向接近的向量配对，用 u-v 生成更短的向量</li>
+  <li>把生成的短向量收集起来，进入下一轮</li>
+  <li>重复多轮，向量越来越短，最终得到最短向量</li>
+</ol>
+
+<div class="card tip">
+  <strong>历史意义：</strong>AKS 筛法首次证明了 SVP 可以在 <span class="math-inline">2^{O(n)}</span> 时间内求解，打破了之前 <span class="math-inline">2^{Θ(n log n)}</span> 的枚举壁垒。它启发了后续所有实用筛法的设计。
+</div>
+
+<h3>3.2 AKS 的问题</h3>
+<ul>
+  <li>常数因子极大，理论上 <span class="math-inline">2^{O(n)}</span> 但实际中 <span class="math-inline">2^{10n}</span> 都不止</li>
+  <li>需要维护大量列表，内存开销巨大</li>
+  <li>分析复杂，参数难以调优</li>
+  <li><strong>从未被真正实现过</strong>——它是一个"存在性证明"而非实用算法</li>
+</ul>
+</section>
+
+<!-- ===== Section 4 ===== -->
+<section id="sec4">
+<h2>4. ListSieve / NV 筛法：第一代实用筛法</h2>
+
+<p>2008 年，Nguyen 和 Vidick 提出了 <strong>NV 筛法</strong>（也叫 ListSieve），首次让筛法变得"可以跑起来"。他们简化了 AKS 的多列表结构，改用<strong>单个列表 + 近似约简</strong>。</p>
+
+<h3>4.1 ListSieve 的流程</h3>
+<ol>
+  <li>初始化空列表 L</li>
+  <li>采样一个随机格向量 v</li>
+  <li>用 L 中的向量约简 v：遍历 L，如果 ||v - w|| < ||v||，则 v ← v - w</li>
+  <li>如果 v ≠ 0，把 v 加入 L</li>
+  <li>重复直到 L 的大小稳定（不再增长）</li>
+  <li>输出 L 中最短的向量</li>
+</ol>
+
+<h3>4.2 和 AKS 的关键区别</h3>
+<div class="comparison-grid">
+  <div class="comp-card">
+    <h4 style="color:var(--blue);">AKS (2001)</h4>
+    <ul>
+      <li>多轮、多列表</li>
+      <li>精确配对（找最接近的向量）</li>
+      <li>理论保证强</li>
+      <li>常数极大，不实用</li>
+    </ul>
+  </div>
+  <div class="comp-card">
+    <h4 style="color:var(--accent);">NV / ListSieve (2008)</h4>
+    <ul>
+      <li>单列表、在线处理</li>
+      <li>贪心约简（遍历列表依次约简）</li>
+      <li>启发式，无严格证明</li>
+      <li>常数合理，可实现</li>
+    </ul>
+  </div>
+</div>
+
+<h3>4.3 复杂度</h3>
+<p>NV 筛法的启发式复杂度约为时间 <span class="math-inline">2^{0.415n}</span>，空间 <span class="math-inline">2^{0.208n}</span>。虽然比 AKS 好很多，但还不够快——后续的 Gauss Sieve 和 Tuple Sieve 进一步优化了这个常数。</p>
+</section>
+
+<!-- ===== Section 5 ===== -->
+<section id="sec5">
+<h2>5. Gauss Sieve：最经典的实用筛法</h2>
+
+<p>2010 年，Micciancio 和 Voulgaris 提出了 <strong>Gauss Sieve</strong>，这是迄今为止最著名、最广泛实现的筛法算法。它的核心改进是<strong>双向约简</strong>：不仅用列表约简新向量，还用新向量约简列表中的旧向量。</p>
+
+<h3>5.1 Gauss Sieve 的完整流程</h3>
+
+<div class="step-flow">
+  <div class="step-item">
+    <div class="step-num">1</div>
+    <div class="step-content">
+      <strong>初始化</strong><br>
+      空列表 L，空栈 S（存放被修改后需要重新约简的向量），计数器 collisions = 0
+    </div>
+  </div>
+  <div class="step-item">
+    <div class="step-num">2</div>
+    <div class="step-content">
+      <strong>取一个向量</strong><br>
+      如果栈 S 非空，从 S 中弹出一个向量 v；否则采样一个新的随机格向量 v
+    </div>
+  </div>
+  <div class="step-item">
+    <div class="step-num">3</div>
+    <div class="step-content">
+      <strong>用 L 约简 v（forward reduce）</strong><br>
+      遍历 L 中的每个 w，尝试 v ← v ± w（选让 ||v|| 更小的符号），直到 v 不能再被 L 中的任何向量缩短
+    </div>
+  </div>
+  <div class="step-item">
+    <div class="step-num">4</div>
+    <div class="step-content">
+      <strong>用 v 约简 L（backward reduce）</strong><br>
+      遍历 L 中的每个 w，尝试 w ← w ± v。如果 w 被修改了，把旧的 w 从 L 中移除并压入栈 S
+    </div>
+  </div>
+  <div class="step-item">
+    <div class="step-num">5</div>
+    <div class="step-content">
+      <strong>加入列表或计数碰撞</strong><br>
+      如果 v = 0，说明 v 被完全约简掉了（collisions++）；否则把 v 加入 L
+    </div>
+  </div>
+  <div class="step-item">
+    <div class="step-num">6</div>
+    <div class="step-content">
+      <strong>终止条件</strong><br>
+      当 collisions 达到某个阈值（如列表大小的若干倍）时，算法收敛，输出 L 中最短向量
+    </div>
+  </div>
+</div>
+
+<h3>5.2 为什么叫"Gauss"筛法？</h3>
+<p>因为约简操作的本质是<strong>高斯格基约简</strong>（Gaussian reduction）的推广：在二维中，高斯约简反复用 b₁ ← b₁ - ⌊⟨b₁,b₂⟩/||b₂||²⌉·b₂ 来缩短向量。Gauss Sieve 把这个思想推广到了高维的向量列表上。</p>
+
+<h3>5.3 双向约简为什么重要？</h3>
+<div class="card highlight">
+  <strong>关键洞察：</strong>只做 forward reduce（用 L 约简 v）是不够的——L 中可能存在两个向量 u 和 w，它们本身可以互相约简，但因为谁也没"主动"去约简对方，就一直留在列表里。Backward reduce 确保了：每当新向量 v 加入时，会主动去"清理"列表中的旧向量，让列表始终保持"两两不可约简"的状态。这大大加速了收敛。
+</div>
+
+<h3>5.4 复杂度</h3>
+<p>Gauss Sieve 的启发式复杂度：时间 <span class="math-inline">2^{0.377n}</span>，空间 <span class="math-inline">2^{0.208n}</span>。比 NV 筛法的 <span class="math-inline">2^{0.415n}</span> 有明显提升。</p>
+</section>
+
+<!-- ===== Section 6: 交互式演示 ===== -->
+<section id="sec6">
+<h2>6. 交互式筛法过程演示</h2>
+
+<p>下面是一个简化的二维筛法演示。每个点代表一个格向量，算法不断采样新向量（蓝色），然后让向量之间互相约简（碰撞产生更短的向量），最终列表收敛到最短向量附近。</p>
+
+<div class="sieve-container">
+  <div class="sieve-controls">
+    <button class="btn" onclick="sieveStep()">单步执行</button>
+    <button class="btn" onclick="sieveAutoPlay()">自动播放</button>
+    <button class="btn" onclick="sieveReset()">重置</button>
+    <span style="color:var(--text-dim); font-size:0.85em; margin-left:12px;">
+      列表大小: <span id="listSize" style="color:var(--accent2); font-weight:bold;">0</span> |
+      碰撞数: <span id="collisions" style="color:var(--warn); font-weight:bold;">0</span> |
+      最短长度: <span id="shortest" style="color:var(--accent); font-weight:bold;">-</span>
+    </span>
+  </div>
+  <svg class="sieve-svg" id="sieveSvg" viewBox="0 0 800 340"></svg>
+  <div class="sieve-legend">
+    <div class="legend-item"><div class="legend-dot" style="background:#5b9cf6"></div>新采样向量</div>
+    <div class="legend-item"><div class="legend-dot" style="background:#7ee0c1"></div>列表中的向量</div>
+    <div class="legend-item"><div class="legend-dot" style="background:#f0a050"></div>正在约简</div>
+    <div class="legend-item"><div class="legend-dot" style="background:#f0b460"></div>最短向量</div>
+    <div class="legend-item"><div class="legend-dot" style="background:#f07070"></div>被约简为0（碰撞）</div>
+  </div>
+  <p style="margin-top:12px; font-size:0.9em; color:var(--text-dim);" id="sieveStatus">点击"单步执行"开始演示筛法过程</p>
+</div>
+
+<div class="card tip">
+  <strong>观察要点：</strong>
+  <ul>
+    <li>新采样的向量（蓝色）可能很长，但经过列表中向量的约简后迅速变短</li>
+    <li>约简后的新向量会反过来约简列表中的旧向量（双向约简）</li>
+    <li>列表中的向量逐渐聚集在原点附近，长度越来越短</li>
+    <li>当新向量频繁被约简为 0（碰撞）时，说明列表已经"饱和"，最短向量就在其中</li>
+  </ul>
+</div>
+</section>
+
+<!-- ===== Section 7: Tuple Sieve ===== -->
+<section id="sec7">
+<h2>7. Tuple 筛法：用更多向量组合</h2>
+
+<p>Gauss Sieve 每次只组合<strong>两个</strong>向量（u ± v）。一个自然的问题：能不能一次组合<strong>更多</strong>向量来获得更大的长度缩减？这就是 <strong>Tuple 筛法</strong>（元组筛法）的思想。</p>
+
+<h3>7.1 从 2-sieve 到 k-sieve</h3>
+<p><strong>2-sieve</strong>（即 Gauss Sieve）：找两个向量 u, v，如果 ||u ± v|| < min(||u||, ||v||)，就用 u ± v 替换较长的那个。</p>
+
+<p><strong>3-sieve</strong>：找三个向量 u, v, w，如果 ||u ± v ± w|| < min(||u||, ||v||, ||w||)，就用这个组合替换最长的那个。</p>
+
+<p><strong>k-sieve</strong>：推广到 k 个向量的组合。</p>
+
+<div class="math">||±v₁ ± v₂ ± ... ± vₖ|| < min(||v₁||, ..., ||vₖ||) → 替换</div>
+
+<h3>7.2 为什么更多向量组合更好？</h3>
+<p>因为在高维空间中，三个向量的组合比两个向量的组合更有可能产生短向量。直观上，更多的向量意味着更多的"自由度"来调整方向，让组合结果更短。</p>
+
+<div class="card highlight">
+  <strong> trade-off：</strong>k 越大，每次组合的长度缩减越大，但找到好的 k 元组也越困难（搜索空间从 O(N²) 变成 O(Nᵏ)）。实践中 k=3 是最佳平衡点——3-sieve 比 2-sieve 快，但 4-sieve 的搜索开销已经超过了收益。
+</div>
+
+<h3>7.3 3-sieve 的复杂度</h3>
+<p>3-sieve 的启发式复杂度：时间 <span class="math-inline">2^{0.338n}</span>，空间 <span class="math-inline">2^{0.189n}</span>。比 Gauss Sieve 的 <span class="math-inline">2^{0.377n}</span> 又提升了一步。</p>
+
+<h3>7.4 G6K 中的实现</h3>
+<p>G6K（General Sieve Kernel）实现了高效的 3-sieve，是目前创纪录的格基约化工具。它使用<strong>分桶（bucketing）</strong>技术来加速三元组的搜索：把向量按方向哈希到桶中，只在同一个桶内搜索三元组，避免了 O(N³) 的暴力搜索。</p>
+</section>
+
+<!-- ===== Section 8: LSH ===== -->
+<section id="sec8">
+<h2>8. LSH 加速：如何快速找到"相近"的向量</h2>
+
+<p>筛法的瓶颈在于：每次约简都需要在列表中找到与当前向量<strong>方向接近</strong>的向量。如果暴力遍历整个列表，每次约简需要 O(N) 时间，而 N 是指数级的 <span class="math-inline">2^{0.2n}</span>，这太慢了。</p>
+
+<p><strong>局部敏感哈希（LSH, Locality-Sensitive Hashing）</strong>解决了这个问题。</p>
+
+<h3>8.1 LSH 的核心思想</h3>
+<div class="analogy">
+  <span class="label">通俗类比</span>
+  <p>想象你在图书馆找一本书。你不会从第一排开始一本一本地翻（暴力搜索），而是先看分类号——哲学书在 B 区，计算机书在 T 区。分类号就是一个"哈希"：相似的书（主题接近）被分到同一个区域。</p>
+  <p>LSH 做的是同样的事：设计一个哈希函数，让<strong>方向接近的向量有更大概率哈希到同一个桶</strong>，方向远离的向量大概率哈希到不同桶。这样找相近向量时，只需要检查同一个桶里的向量，不用遍历全部。</p>
+</div>
+
+<h3>8.2 角度 LSH（Angular LSH）</h3>
+<p>对于格筛法，最常用的是<strong>角度 LSH</strong>（也叫随机超平面 LSH，Charikar 2002）：</p>
+
+<div class="math">h(v) = sign(⟨a, v⟩)，其中 a 是随机高斯向量</div>
+
+<p>这个哈希函数的性质：两个向量 v 和 w 的夹角为 θ 时，它们哈希值相同的概率是 <span class="math-inline">1 - θ/π</span>。夹角越小（方向越接近），同桶概率越高！</p>
+
+<p>为了提高精度，通常使用<strong>多个哈希函数 + 多个哈希表</strong>：</p>
+<ul>
+  <li>每个哈希表用一组（比如 10-20 个）随机超平面，向量的哈希值是这些超平面 sign 的组合</li>
+  <li>建多个（比如 20-30 个）哈希表，每个用不同的随机超平面</li>
+  <li>查询时，在所有哈希表中找与查询向量同桶的向量，取并集作为候选</li>
+</ul>
+
+<h3>8.3 LSH 带来的加速</h3>
+<p>使用 LSH 后，每次约简的候选向量数从 O(N) 降到了 <span class="math-inline">N^{ρ}</span>（ρ < 1），整体时间复杂度从 <span class="math-inline">2^{0.415n}</span> 降到了 <span class="math-inline">2^{0.337n}</span>（NV 筛法 + LSH）。这是一个巨大的提升！</p>
+
+<div class="card warn">
+  <strong>LSH 的代价：</strong>
+  <ul>
+    <li>需要额外的内存存储哈希表（通常是列表大小的 5-10 倍）</li>
+    <li>有一定概率漏掉真正相近的向量（假阴性），但实践中通过多哈希表可以把概率压得很低</li>
+    <li>哈希函数的参数（超平面数量、哈希表数量）需要仔细调优</li>
+  </ul>
+</div>
+
+<h3>8.4 更先进的加速技术</h3>
+<ul>
+  <li><strong>分桶（Bucketing）</strong>：G6K 使用的技术，按向量在随机超平面上的投影排序，只比较投影接近的向量对</li>
+  <li><strong>Folding</strong>：把向量折叠到一个基本域内，减少需要比较的向量数量</li>
+  <li><strong>GPU/Tensor Core 加速</strong>：利用 GPU 的并行计算能力同时处理大量向量对</li>
+</ul>
+</section>
+
+<!-- ===== Section 9: 复杂度对比 ===== -->
+<section id="sec9">
+<h2>9. 复杂度对比与工程权衡</h2>
+
+<h3>9.1 各类算法复杂度总览</h3>
+<table>
+  <tr>
+    <th>算法</th>
+    <th>年份</th>
+    <th>时间</th>
+    <th>空间</th>
+    <th>类型</th>
+  </tr>
+  <tr>
+    <td>枚举（极端剪枝）</td>
+    <td>2010</td>
+    <td><span class="math-inline">2^{0.5n}</span></td>
+    <td>poly(n)</td>
+    <td>确定性</td>
+  </tr>
+  <tr>
+    <td>AKS 筛法</td>
+    <td>2001</td>
+    <td><span class="math-inline">2^{O(n)}</span>（常数极大）</td>
+    <td><span class="math-inline">2^{O(n)}</span></td>
+    <td>可证明</td>
+  </tr>
+  <tr>
+    <td>NV / ListSieve</td>
+    <td>2008</td>
+    <td><span class="math-inline">2^{0.415n}</span></td>
+    <td><span class="math-inline">2^{0.208n}</span></td>
+    <td>启发式</td>
+  </tr>
+  <tr>
+    <td>Gauss Sieve</td>
+    <td>2010</td>
+    <td><span class="math-inline">2^{0.377n}</span></td>
+    <td><span class="math-inline">2^{0.208n}</span></td>
+    <td>启发式</td>
+  </tr>
+  <tr>
+    <td>NV + LSH</td>
+    <td>2015</td>
+    <td><span class="math-inline">2^{0.337n}</span></td>
+    <td><span class="math-inline">2^{0.208n}</span></td>
+    <td>启发式</td>
+  </tr>
+  <tr>
+    <td>3-sieve (BDGL)</td>
+    <td>2016</td>
+    <td><span class="math-inline">2^{0.338n}</span></td>
+    <td><span class="math-inline">2^{0.189n}</span></td>
+    <td>启发式</td>
+  </tr>
+  <tr>
+    <td>3-sieve + LSH</td>
+    <td>2016+</td>
+    <td><span class="math-inline">2^{0.292n}</span></td>
+    <td><span class="math-inline">2^{0.208n}</span></td>
+    <td>启发式</td>
+  </tr>
+</table>
+
+<h3>9.2 时间复杂度可视化对比</h3>
+<div class="chart-container">
+  <svg class="chart-svg" id="complexityChart" viewBox="0 0 800 360"></svg>
+</div>
+
+<h3>9.3 工程上的权衡</h3>
+<div class="comparison-grid">
+  <div class="comp-card">
+    <h4 style="color:var(--blue);">什么时候用枚举？</h4>
+    <ul>
+      <li>维度较低（n ≤ 60-70）</li>
+      <li>内存受限（枚举只用多项式空间）</li>
+      <li>需要确定性保证</li>
+      <li>BKZ 的块内 SVP（块大小 β ≤ 60）</li>
+    </ul>
+  </div>
+  <div class="comp-card">
+    <h4 style="color:var(--accent);">什么时候用筛法？</h4>
+    <ul>
+      <li>维度较高（n ≥ 80）</li>
+      <li>内存充足（筛法需要指数空间）</li>
+      <li>追求最快速度</li>
+      <li>高维 SVP 挑战、密码分析</li>
+      <li>BKZ 的大块 SVP（β > 60）</li>
+    </ul>
+  </div>
+</div>
+
+<div class="card tip">
+  <strong>当前最佳实践：</strong>现代格基约化（如 G6K）采用<strong>混合策略</strong>——低维块用枚举，高维块用筛法，通过 Pump 机制在两者之间平滑过渡。这结合了两者的优势。
+</div>
+</section>
+
+<!-- ===== Section 10: 代码 ===== -->
+<section id="sec10">
+<h2>10. 最简 Python 代码实现</h2>
+
+<p>下面是一个<strong>教学用</strong>的 Gauss Sieve 最简实现。它省略了 LSH 加速、采样优化等工程细节，但完整保留了 Gauss Sieve 的核心逻辑。</p>
+
+<h3>10.1 随机采样（Klein 采样的简化版）</h3>
+<pre><code><span class="code-keyword">import</span> numpy <span class="code-keyword">as</span> np
+
+<span class="code-keyword">def</span> <span class="code-func">sample_vector</span>(B, sigma=None):
+    <span class="code-comment">"""
+    从格 L(B) 中随机采样一个向量。
+    简化版：对每个基向量系数取随机整数，偏向小系数。
+    工业实现用 Klein 采样（基于 GSO 的离散高斯采样）。
+    """</span>
+    n = B.shape[0]
+    <span class="code-keyword">if</span> sigma <span class="code-keyword">is</span> <span class="code-keyword">None</span>:
+        sigma = n  <span class="code-comment"># 采样半径</span>
+    <span class="code-comment"># 随机整数系数，标准差为 sigma</span>
+    coeffs = np.round(np.random.normal(<span class="code-func">0</span>, sigma, n)).astype(<span class="code-func">int</span>)
+    <span class="code-keyword">return</span> coeffs @ B</code></pre>
+
+<h3>10.2 Gauss Sieve 核心实现</h3>
+<pre><code><span class="code-keyword">def</span> <span class="code-func">gauss_sieve</span>(B, max_collisions=None, verbose=<span class="code-keyword">False</span>):
+    <span class="code-comment">"""
+    Gauss Sieve 算法，求格 L(B) 的最短向量。
+    B: n×m 的格基矩阵（n 行向量）
+    返回: (最短向量, 最短长度平方, 列表大小)
+    """</span>
+    n = B.shape[0]
+    <span class="code-keyword">if</span> max_collisions <span class="code-keyword">is</span> <span class="code-keyword">None</span>:
+        max_collisions = <span class="code-func">4096</span>  <span class="code-comment"># 碰撞阈值，越大结果越精确</span>
+
+    L = []           <span class="code-comment"># 向量列表</span>
+    S = []           <span class="code-comment"># 栈：存放被修改后需要重新约简的向量</span>
+    collisions = <span class="code-func">0</span>
+    best_norm = np.inf
+    best_v = <span class="code-keyword">None</span>
+
+    <span class="code-keyword">def</span> <span class="code-func">reduce_vector</span>(v, lst):
+        <span class="code-comment">"""用列表 lst 中的向量约简 v，返回约简后的 v"""</span>
+        changed = <span class="code-keyword">True</span>
+        <span class="code-keyword">while</span> changed:
+            changed = <span class="code-keyword">False</span>
+            <span class="code-keyword">for</span> w <span class="code-keyword">in</span> lst:
+                <span class="code-comment"># 尝试 v - w 和 v + w，选更短的</span>
+                v_minus = v - w
+                v_plus = v + w
+                norm_v = np.dot(v, v)
+                norm_minus = np.dot(v_minus, v_minus)
+                norm_plus = np.dot(v_plus, v_plus)
+                <span class="code-keyword">if</span> norm_minus < norm_v:
+                    v = v_minus
+                    changed = <span class="code-keyword">True</span>
+                <span class="code-keyword">elif</span> norm_plus < norm_v:
+                    v = v_plus
+                    changed = <span class="code-keyword">True</span>
+        <span class="code-keyword">return</span> v
+
+    iteration = <span class="code-func">0</span>
+    <span class="code-keyword">while</span> collisions < max_collisions:
+        iteration += <span class="code-func">1</span>
+
+        <span class="code-comment"># 步骤1: 取一个向量（优先从栈取，否则新采样）</span>
+        <span class="code-keyword">if</span> S:
+            v = S.pop()
+        <span class="code-keyword">else</span>:
+            v = sample_vector(B)
+
+        <span class="code-comment"># 步骤2: 用 L 约简 v (forward reduce)</span>
+        v = reduce_vector(v, L)
+
+        <span class="code-comment"># 步骤3: 检查是否被约简为 0</span>
+        <span class="code-keyword">if</span> np.all(v == <span class="code-func">0</span>):
+            collisions += <span class="code-func">1</span>
+            <span class="code-keyword">if</span> verbose <span class="code-keyword">and</span> collisions % <span class="code-func">500</span> == <span class="code-func">0</span>:
+                <span class="code-func">print</span>(<span class="code-string">f"碰撞 {collisions}/{max_collisions}, 列表大小 {len(L)}"</span>)
+            <span class="code-keyword">continue</span>
+
+        <span class="code-comment"># 步骤4: 用 v 约简 L 中的向量 (backward reduce)</span>
+        new_L = []
+        <span class="code-keyword">for</span> w <span class="code-keyword">in</span> L:
+            w_minus = w - v
+            w_plus = w + v
+            norm_w = np.dot(w, w)
+            norm_minus = np.dot(w_minus, w_minus)
+            norm_plus = np.dot(w_plus, w_plus)
+            <span class="code-keyword">if</span> norm_minus < norm_w:
+                S.append(w)  <span class="code-comment"># 旧 w 需要重新约简</span>
+                <span class="code-comment"># 不把 w 加入 new_L（它被 v 替换了位置）</span>
+            <span class="code-keyword">elif</span> norm_plus < norm_w:
+                S.append(w)
+            <span class="code-keyword">else</span>:
+                new_L.append(w)
+        L = new_L
+
+        <span class="code-comment"># 步骤5: 把 v 加入列表</span>
+        L.append(v)
+
+        <span class="code-comment"># 更新最短向量</span>
+        norm_v = np.dot(v, v)
+        <span class="code-keyword">if</span> norm_v < best_norm:
+            best_norm = norm_v
+            best_v = v.copy()
+
+    <span class="code-keyword">return</span> best_v, best_norm, len(L)</code></pre>
+
+<h3>10.3 测试一下</h3>
+<pre><code><span class="code-comment"># 一个简单的二维格</span>
+B = np.array([[<span class="code-func">3</span>, <span class="code-func">1</span>],
+              [<span class="code-func">1</span>, <span class="code-func">4</span>]])
+
+np.random.seed(<span class="code-func">42</span>)
+v, norm, list_size = gauss_sieve(B, max_collisions=<span class="code-func">200</span>)
+<span class="code-func">print</span>(<span class="code-string">"最短向量:"</span>, v)
+<span class="code-string">"最短长度平方:"</span>, norm)
+<span class="code-func">print</span>(<span class="code-string">"最终列表大小:"</span>, list_size)
+<span class="code-comment"># 最短向量: [1 0] 或 [-1 0]，长度平方 = 5（和枚举结果一致）</span></code></pre>
+
+<div class="card warn">
+  <strong>注意：</strong>这是教学实现，有几个简化：
+  <ul>
+    <li>采样用简单的随机整数系数，工业实现用 Klein 离散高斯采样</li>
+    <li>约简是暴力遍历列表，工业实现用 LSH/分桶加速</li>
+    <li>没有处理数值稳定性和高维优化</li>
+    <li>高维下会非常慢（没有 LSH 加速）</li>
+  </ul>
+  但核心思想——采样、双向约简、碰撞计数、列表收敛——是完全一致的。
+</div>
+</section>
+
+<!-- ===== Section 11: 工业库 ===== -->
+<section id="sec11">
+<h2>11. 工业界使用的库</h2>
+
+<p>实际使用中，你几乎不会自己实现筛法。下面是目前最主流的筛法库：</p>
+
+<div class="lib-grid">
+  <div class="lib-card">
+    <div class="lib-name">G6K</div>
+    <span class="lib-lang">C++ / Python</span>
+    <p><strong>General Sieve Kernel</strong>，目前最强的格筛法库。由 Albrecht、Ducas 等人开发，实现了高效的 3-sieve、分桶加速、Pump 机制。多次打破 SVP 挑战纪录，是高维格基约化的首选。<br><br>
+    <strong>GitHub:</strong> fplll/g6k</p>
+  </div>
+  <div class="lib-card">
+    <div class="lib-name">fplll</div>
+    <span class="lib-lang">C++</span>
+    <p>最权威的格基约化库。虽然以枚举/BKZ 闻名，但也包含了筛法实现（通过 G6K 集成）。是 SageMath 的默认后端。<br><br>
+    <strong>GitHub:</strong> fplll/fplll</p>
+  </div>
+  <div class="lib-card">
+    <div class="lib-name">G6K-GPU-Tensor</div>
+    <span class="lib-lang">C++ / CUDA</span>
+    <p>G6K 的 GPU 加速分支，利用 NVIDIA Tensor Core 加速筛法中的向量内积计算。在支持的 GPU 上可获得数倍加速。<br><br>
+    <strong>GitHub:</strong> mfkiwl/g6k-gpu-tensor</p>
+  </div>
+  <div class="lib-card">
+    <div class="lib-name">g6k-rs</div>
+    <span class="lib-lang">Rust</span>
+    <p>G6K 的 Rust 重实现，提供 LLL/BKZ、筛法、CPU 加速。内存安全，适合需要现代工具链的项目。<br><br>
+    <strong>Crates:</strong> g6k-rs</p>
+  </div>
+  <div class="lib-card">
+    <div class="lib-name">SageMath</div>
+    <span class="lib-lang">Python</span>
+    <p>开源数学软件，内置 fplll 和 G6K 的封装。可以用一行代码调用筛法，是研究和教学最方便的工具。<br><br>
+    <strong>官网:</strong> sagemath.org</p>
+  </div>
+  <div class="lib-card">
+    <div class="lib-name">fpylll</div>
+    <span class="lib-lang">Python</span>
+    <p>fplll 的 Python 封装，可与 G6K 配合使用。方便在 Python 中进行格算法实验和原型开发。<br><br>
+    <strong>安装:</strong> pip install fpylll</p>
+  </div>
+</div>
+
+<h3>11.1 快速上手：G6K 示例</h3>
+<pre><code><span class="code-keyword">from</span> g6k <span class="code-keyword">import</span> Siever
+<span class="code-keyword">from</span> fpylll <span class="code-keyword">import</span> IntegerMatrix, LLL
+
+<span class="code-comment"># 创建一个随机格基</span>
+A = IntegerMatrix.random(<span class="code-func">80</span>, <span class="code-string">"qary"</span>, k=<span class="code-func">40</span>, q=<span class="code-func">2</span>**<span class="code-func">20</span>)
+LLL.reduction(A)
+
+<span class="code-comment"># 创建筛法器</span>
+siever = Siever(A)
+
+<span class="code-comment"># 运行筛法（默认 3-sieve + 分桶加速）</span>
+siever.sieve(<span class="code-func">10</span>)  <span class="code-comment"># 10 轮迭代</span>
+
+<span class="code-comment"># 获取数据库中最短的向量</span>
+best = siever.best_vector()
+<span class="code-func">print</span>(<span class="code-string">"最短向量长度:"</span>, best.norm())</code></pre>
+
+<h3>11.2 如何选择？</h3>
+<table>
+  <tr>
+    <th>场景</th>
+    <th>推荐库</th>
+    <th>原因</th>
+  </tr>
+  <tr>
+    <td>学习 / 快速实验</td>
+    <td>SageMath / fpylll</td>
+    <td>Python 接口，简单易用</td>
+  </tr>
+  <tr>
+    <td>高维 SVP / 创纪录</td>
+    <td>G6K</td>
+    <td>最快的公开筛法实现</td>
+  </tr>
+  <tr>
+    <td>有 GPU 可用</td>
+    <td>G6K-GPU-Tensor</td>
+    <td>Tensor Core 加速</td>
+  </tr>
+  <tr>
+    <td>生产环境 C++</td>
+    <td>fplll + G6K</td>
+    <td>最成熟稳定</td>
+  </tr>
+  <tr>
+    <td>Rust 项目</td>
+    <td>g6k-rs</td>
+    <td>内存安全，现代工具链</td>
+  </tr>
+  <tr>
+    <td>BKZ 约化（中等维度）</td>
+    <td>fplll（枚举）</td>
+    <td>低维枚举更快</td>
+  </tr>
+  <tr>
+    <td>BKZ 约化（高维度）</td>
+    <td>G6K（Pump-N-Jump）</td>
+    <td>筛法+枚举混合</td>
+  </tr>
+</table>
+</section>
+
+<!-- ===== Section 12: 总结 ===== -->
+<section id="sec12">
+<h2>12. 总结与延伸阅读</h2>
+
+<h3>核心要点回顾</h3>
+<div class="card highlight">
+  <ol>
+    <li><strong>筛法是什么：</strong>随机采样大量格向量，让它们互相约简（相加/相减变短），反复迭代直到列表收敛到最短向量</li>
+    <li><strong>几何原理：</strong>两个方向接近的向量相减会更短；列表中向量两两夹角 ≥ 60° 时列表大小有上界</li>
+    <li><strong>AKS (2001)：</strong>理论奠基，证明 <span class="math-inline">2^{O(n)}</span> 可行，但不实用</li>
+    <li><strong>Gauss Sieve (2010)：</strong>最经典的实用筛法，双向约简是关键</li>
+    <li><strong>Tuple Sieve：</strong>3-sieve 比 2-sieve 更快，k=3 是最佳平衡点</li>
+    <li><strong>LSH 加速：</strong>用角度局部敏感哈希快速找到方向接近的向量，时间降到 <span class="math-inline">2^{0.292n}</span></li>
+    <li><strong>枚举 vs 筛法：</strong>低维用枚举（省空间），高维用筛法（省时间），现代工具混合使用</li>
+    <li><strong>工业实现：</strong>G6K（最强筛法）、fplll（枚举+BKZ）、SageMath（易用）</li>
+  </ol>
+</div>
+
+<h3>延伸阅读</h3>
+<ul>
+  <li><strong>Ajtai, Kumar, Sivakumar (2001)</strong> — "A sieve algorithm for the shortest lattice vector problem"（AKS 原始论文，STOC）</li>
+  <li><strong>Nguyen & Vidick (2008)</strong> — "Sieve algorithms for the shortest vector problem are practical"（NV 筛法）</li>
+  <li><strong>Micciancio & Voulgaris (2010)</strong> — "Faster exponential time algorithms for the shortest vector problem"（Gauss Sieve）</li>
+  <li><strong>Becker, Ducas, Gama, Laarhoven (2016)</strong> — "New directions in nearest neighbor searching with applications to lattice sieving"（3-sieve + LSH）</li>
+  <li><strong>Albrecht et al. (2019)</strong> — "The General Sieve Kernel and New Records in Lattice Reduction"（G6K 论文）</li>
+  <li><strong>Laarhoven (2015)</strong> — "Sieving for shortest vectors in lattices using angular locality-sensitive hashing"（LSH 筛法）</li>
+</ul>
+
+<h3>未来趋势</h3>
+<p>筛法目前是高维 SVP 的最快算法，但仍在快速发展：</p>
+<ul>
+  <li><strong>GPU/Tensor Core 加速</strong>：利用并行硬件进一步加速</li>
+  <li><strong>量子筛法</strong>：结合 Grover 搜索获得多项式级量子加速（目前仍为理论）</li>
+  <li><strong>混合算法</strong>：枚举和筛法的深度融合（如 G6K 的 Pump）</li>
+  <li><strong>理想格/模格专用筛法</strong>：利用格的代数结构进一步加速</li>
+</ul>
+</section>
+
+<footer>
+  <p>格上最短向量的筛法完全指南 · 面向新手的通俗讲解</p>
+</footer>
+
+</div>
+
+<script>
+// ===== 筛法交互式演示 =====
+const sieveSvg = document.getElementById('sieveSvg');
+const NS = 'http://www.w3.org/2000/svg';
+const CX = 400, CY = 170, SCALE = 28;
+
+let sieveState = {
+  list: [],        // 列表中的向量 [[x,y], ...]
+  stack: [],       // 栈
+  collisions: 0,
+  currentV: null,  // 当前处理的向量
+  phase: 'sample', // sample | reduce | add | collide
+  bestNorm: Infinity,
+  bestV: null,
+  stepCount: 0
+};
+
+// 预生成一些"格向量"用于演示（二维格）
+const demoBasis = [[3, 1], [1, 4]];
+function demoSample() {
+  const c1 = Math.floor(Math.random() * 7) - 3;
+  const c2 = Math.floor(Math.random() * 7) - 3;
+  return [c1 * demoBasis[0][0] + c2 * demoBasis[1][0],
+          c1 * demoBasis[0][1] + c2 * demoBasis[1][1]];
+}
+
+function norm2(v) { return v[0]*v[0] + v[1]*v[1]; }
+
+function sieveReset() {
+  sieveState = { list: [], stack: [], collisions: 0, currentV: null, phase: 'sample', bestNorm: Infinity, bestV: null, stepCount: 0 };
+  stopSieveAuto();
+  drawSieve();
+  updateSieveStats();
+  document.getElementById('sieveStatus').textContent = '点击"单步执行"开始演示筛法过程';
+}
+
+function sieveStep() {
+  sieveState.stepCount++;
+  const s = sieveState;
+
+  if (s.phase === 'sample') {
+    // 取一个向量
+    if (s.stack.length > 0) {
+      s.currentV = s.stack.pop();
+    } else {
+      s.currentV = demoSample();
+    }
+    s.phase = 'reduce';
+    document.getElementById('sieveStatus').textContent = `步骤 ${s.stepCount}: 采样向量 (${s.currentV[0]}, ${s.currentV[1]})，长度=${Math.sqrt(norm2(s.currentV)).toFixed(1)}`;
+  } else if (s.phase === 'reduce') {
+    // 用列表约简 currentV（简化：一次约简）
+    let reduced = false;
+    for (let i = 0; i < s.list.length; i++) {
+      const w = s.list[i];
+      const vm = [s.currentV[0] - w[0], s.currentV[1] - w[1]];
+      const vp = [s.currentV[0] + w[0], s.currentV[1] + w[1]];
+      if (norm2(vm) < norm2(s.currentV)) { s.currentV = vm; reduced = true; break; }
+      if (norm2(vp) < norm2(s.currentV)) { s.currentV = vp; reduced = true; break; }
+    }
+    if (reduced) {
+      document.getElementById('sieveStatus').textContent = `步骤 ${s.stepCount}: 约简后向量 (${s.currentV[0]}, ${s.currentV[1]})，长度=${Math.sqrt(norm2(s.currentV)).toFixed(1)}`;
+      // 继续约简
+    } else {
+      s.phase = 'backreduce';
+    }
+  } else if (s.phase === 'backreduce') {
+    // 用 currentV 约简列表
+    let changed = false;
+    const newList = [];
+    for (const w of s.list) {
+      const wm = [w[0] - s.currentV[0], w[1] - s.currentV[1]];
+      const wp = [w[0] + s.currentV[0], w[1] + s.currentV[1]];
+      if (norm2(wm) < norm2(w)) { s.stack.push(w); changed = true; }
+      else if (norm2(wp) < norm2(w)) { s.stack.push(w); changed = true; }
+      else { newList.push(w); }
+    }
+    s.list = newList;
+    if (norm2(s.currentV) === 0) {
+      s.collisions++;
+      s.phase = 'sample';
+      document.getElementById('sieveStatus').textContent = `步骤 ${s.stepCount}: 向量被约简为 0！碰撞数=${s.collisions}`;
+    } else {
+      s.list.push([...s.currentV]);
+      const n = norm2(s.currentV);
+      if (n < s.bestNorm) { s.bestNorm = n; s.bestV = [...s.currentV]; }
+      s.phase = 'sample';
+      document.getElementById('sieveStatus').textContent = `步骤 ${s.stepCount}: 向量加入列表，列表大小=${s.list.length}，最短长度=${Math.sqrt(s.bestNorm).toFixed(2)}`;
+    }
+  }
+
+  drawSieve();
+  updateSieveStats();
+}
+
+function drawSieve() {
+  sieveSvg.innerHTML = '';
+
+  // 画网格
+  for (let i = -6; i <= 6; i++) {
+    const line = document.createElementNS(NS, 'line');
+    line.setAttribute('x1', CX + i * SCALE); line.setAttribute('y1', 20);
+    line.setAttribute('x2', CX + i * SCALE); line.setAttribute('y2', 320);
+    line.setAttribute('stroke', '#1e2230'); line.setAttribute('stroke-width', '0.5');
+    sieveSvg.appendChild(line);
+    const line2 = document.createElementNS(NS, 'line');
+    line2.setAttribute('x1', 100); line2.setAttribute('y1', CY + i * SCALE);
+    line2.setAttribute('x2', 700); line2.setAttribute('y2', CY + i * SCALE);
+    line2.setAttribute('stroke', '#1e2230'); line2.setAttribute('stroke-width', '0.5');
+    sieveSvg.appendChild(line2);
+  }
+
+  // 画坐标轴
+  const ax = document.createElementNS(NS, 'line');
+  ax.setAttribute('x1', 100); ax.setAttribute('y1', CY); ax.setAttribute('x2', 700); ax.setAttribute('y2', CY);
+  ax.setAttribute('stroke', '#3a3f52'); ax.setAttribute('stroke-width', '1');
+  sieveSvg.appendChild(ax);
+  const ay = document.createElementNS(NS, 'line');
+  ay.setAttribute('x1', CX); ay.setAttribute('y1', 20); ay.setAttribute('x2', CX); ay.setAttribute('y2', 320);
+  ay.setAttribute('stroke', '#3a3f52'); ay.setAttribute('stroke-width', '1');
+  sieveSvg.appendChild(ay);
+
+  // 画列表中的向量
+  for (const v of sieveState.list) {
+    const x = CX + v[0] * SCALE;
+    const y = CY - v[1] * SCALE;
+    if (x < 80 || x > 720 || y < 10 || y > 330) continue;
+    const isBest = sieveState.bestV && v[0] === sieveState.bestV[0] && v[1] === sieveState.bestV[1];
+    const circle = document.createElementNS(NS, 'circle');
+    circle.setAttribute('cx', x); circle.setAttribute('cy', y);
+    circle.setAttribute('r', isBest ? 8 : 5);
+    circle.setAttribute('fill', isBest ? '#f0b460' : '#7ee0c1');
+    circle.setAttribute('opacity', '0.85');
+    sieveSvg.appendChild(circle);
+    // 连线到原点
+    const line = document.createElementNS(NS, 'line');
+    line.setAttribute('x1', CX); line.setAttribute('y1', CY);
+    line.setAttribute('x2', x); line.setAttribute('y2', y);
+    line.setAttribute('stroke', isBest ? '#f0b460' : '#7ee0c1');
+    line.setAttribute('stroke-width', '1');
+    line.setAttribute('opacity', '0.3');
+    sieveSvg.appendChild(line);
+  }
+
+  // 画当前向量
+  if (sieveState.currentV) {
+    const v = sieveState.currentV;
+    const x = CX + v[0] * SCALE;
+    const y = CY - v[1] * SCALE;
+    if (x >= 80 && x <= 720 && y >= 10 && y <= 330) {
+      const circle = document.createElementNS(NS, 'circle');
+      circle.setAttribute('cx', x); circle.setAttribute('cy', y);
+      circle.setAttribute('r', 9);
+      circle.setAttribute('fill', sieveState.phase === 'reduce' ? '#f0a050' : '#5b9cf6');
+      circle.setAttribute('stroke', '#fff');
+      circle.setAttribute('stroke-width', '2');
+      sieveSvg.appendChild(circle);
+      const line = document.createElementNS(NS, 'line');
+      line.setAttribute('x1', CX); line.setAttribute('y1', CY);
+      line.setAttribute('x2', x); line.setAttribute('y2', y);
+      line.setAttribute('stroke', sieveState.phase === 'reduce' ? '#f0a050' : '#5b9cf6');
+      line.setAttribute('stroke-width', '2');
+      sieveSvg.appendChild(line);
+    }
+  }
+
+  // 标签
+  const t = document.createElementNS(NS, 'text');
+  t.setAttribute('x', CX); t.setAttribute('y', 335);
+  t.setAttribute('text-anchor', 'middle'); t.setAttribute('fill', '#9ba1b5');
+  t.setAttribute('font-size', '11');
+  t.textContent = '二维格向量示意（原点在中心）';
+  sieveSvg.appendChild(t);
+}
+
+function updateSieveStats() {
+  document.getElementById('listSize').textContent = sieveState.list.length;
+  document.getElementById('collisions').textContent = sieveState.collisions;
+  document.getElementById('shortest').textContent = sieveState.bestNorm === Infinity ? '-' : Math.sqrt(sieveState.bestNorm).toFixed(2);
+}
+
+let sieveAutoInterval = null;
+function sieveAutoPlay() {
+  if (sieveAutoInterval) { stopSieveAuto(); return; }
+  document.querySelectorAll('.sieve-controls .btn').forEach(b => {
+    if (b.textContent === '自动播放') b.textContent = '暂停';
+  });
+  sieveAutoInterval = setInterval(sieveStep, 600);
+}
+function stopSieveAuto() {
+  if (sieveAutoInterval) clearInterval(sieveAutoInterval);
+  sieveAutoInterval = null;
+  document.querySelectorAll('.sieve-controls .btn').forEach(b => {
+    if (b.textContent === '暂停') b.textContent = '自动播放';
+  });
+}
+
+// 初始化
+drawSieve();
+updateSieveStats();
+
+// ===== 复杂度对比图 =====
+const chart = document.getElementById('complexityChart');
+function drawComplexityChart() {
+  chart.innerHTML = '';
+  const W = 800, H = 360;
+  const padL = 60, padR = 20, padT = 30, padB = 50;
+  const plotW = W - padL - padR, plotH = H - padT - padB;
+
+  // 数据
+  const algorithms = [
+    { name: '枚举(极端剪枝)', c: 0.5, color: '#5b9cf6' },
+    { name: 'NV筛法', c: 0.415, color: '#b48ef0' },
+    { name: 'Gauss Sieve', c: 0.377, color: '#7ee0c1' },
+    { name: '3-sieve', c: 0.338, color: '#f0b460' },
+    { name: '3-sieve+LSH', c: 0.292, color: '#f0a050' },
+  ];
+  const nMin = 40, nMax = 120;
+
+  // 坐标轴
+  const xAxis = document.createElementNS(NS, 'line');
+  xAxis.setAttribute('x1', padL); xAxis.setAttribute('y1', H - padB);
+  xAxis.setAttribute('x2', W - padR); xAxis.setAttribute('y2', H - padB);
+  xAxis.setAttribute('stroke', '#3a3f52'); chart.appendChild(xAxis);
+  const yAxis = document.createElementNS(NS, 'line');
+  yAxis.setAttribute('x1', padL); yAxis.setAttribute('y1', padT);
+  yAxis.setAttribute('x2', padL); yAxis.setAttribute('y2', H - padB);
+  yAxis.setAttribute('stroke', '#3a3f52'); chart.appendChild(yAxis);
+
+  // Y轴标签（log2 操作数）
+  for (let i = 0; i <= 6; i++) {
+    const y = H - padB - (i / 6) * plotH;
+    const val = i * 10;
+    const t = document.createElementNS(NS, 'text');
+    t.setAttribute('x', padL - 8); t.setAttribute('y', y + 4);
+    t.setAttribute('text-anchor', 'end'); t.setAttribute('fill', '#9ba1b5');
+    t.setAttribute('font-size', '10');
+    t.textContent = '2^' + val;
+    chart.appendChild(t);
+    const grid = document.createElementNS(NS, 'line');
+    grid.setAttribute('x1', padL); grid.setAttribute('y1', y);
+    grid.setAttribute('x2', W - padR); grid.setAttribute('y2', y);
+    grid.setAttribute('stroke', '#1e2230'); grid.setAttribute('stroke-width', '0.5');
+    chart.appendChild(grid);
+  }
+
+  // X轴标签
+  for (let n = nMin; n <= nMax; n += 20) {
+    const x = padL + ((n - nMin) / (nMax - nMin)) * plotW;
+    const t = document.createElementNS(NS, 'text');
+    t.setAttribute('x', x); t.setAttribute('y', H - padB + 18);
+    t.setAttribute('text-anchor', 'middle'); t.setAttribute('fill', '#9ba1b5');
+    t.setAttribute('font-size', '11');
+    t.textContent = 'n=' + n;
+    chart.appendChild(t);
+  }
+
+  // 轴标题
+  const xt = document.createElementNS(NS, 'text');
+  xt.setAttribute('x', W / 2); xt.setAttribute('y', H - 8);
+  xt.setAttribute('text-anchor', 'middle'); xt.setAttribute('fill', '#9ba1b5');
+  xt.setAttribute('font-size', '12');
+  xt.textContent = '格维度 n';
+  chart.appendChild(xt);
+  const yt = document.createElementNS(NS, 'text');
+  yt.setAttribute('x', 14); yt.setAttribute('y', H / 2);
+  yt.setAttribute('text-anchor', 'middle'); yt.setAttribute('fill', '#9ba1b5');
+  yt.setAttribute('font-size', '12');
+  yt.setAttribute('transform', `rotate(-90, 14, ${H/2})`);
+  yt.textContent = '时间复杂度 (log₂)';
+  chart.appendChild(yt);
+
+  // 画曲线
+  algorithms.forEach((alg, idx) => {
+    const points = [];
+    for (let n = nMin; n <= nMax; n += 2) {
+      const val = alg.c * n;
+      const x = padL + ((n - nMin) / (nMax - nMin)) * plotW;
+      const y = H - padB - (val / 60) * plotH;
+      if (y >= padT && y <= H - padB) points.push(`${x},${y}`);
+    }
+    const polyline = document.createElementNS(NS, 'polyline');
+    polyline.setAttribute('points', points.join(' '));
+    polyline.setAttribute('fill', 'none');
+    polyline.setAttribute('stroke', alg.color);
+    polyline.setAttribute('stroke-width', '2.5');
+    chart.appendChild(polyline);
+
+    // 图例
+    const ly = padT + idx * 22;
+    const lc = document.createElementNS(NS, 'line');
+    lc.setAttribute('x1', W - padR - 140); lc.setAttribute('y1', ly);
+    lc.setAttribute('x2', W - padR - 120); lc.setAttribute('y2', ly);
+    lc.setAttribute('stroke', alg.color); lc.setAttribute('stroke-width', '2.5');
+    chart.appendChild(lc);
+    const lt = document.createElementNS(NS, 'text');
+    lt.setAttribute('x', W - padR - 115); lt.setAttribute('y', ly + 4);
+    lt.setAttribute('fill', '#9ba1b5'); lt.setAttribute('font-size', '10');
+    lt.textContent = alg.name + ` (2^${alg.c}n)`;
+    chart.appendChild(lt);
+  });
+}
+drawComplexityChart();
+</script>
+</body>
+</html>

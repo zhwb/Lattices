@@ -1,0 +1,1356 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>BKZ / BKZ 2.0 中找最短向量的枚举方法</title>
+<style>
+:root {
+  --bg: #0f1117;
+  --bg-card: #1a1d27;
+  --bg-code: #12141c;
+  --border: #2a2e3d;
+  --text: #e4e6ef;
+  --text-dim: #9ba1b5;
+  --accent: #5b9cf6;
+  --accent2: #7ee0c1;
+  --warn: #f0b460;
+  --danger: #f07070;
+  --purple: #b48ef0;
+}
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body {
+  font-family: -apple-system, "PingFang SC", "Microsoft YaHei", "Noto Sans SC", sans-serif;
+  background: var(--bg);
+  color: var(--text);
+  line-height: 1.75;
+  font-size: 16px;
+}
+.container { max-width: 960px; margin: 0 auto; padding: 40px 24px 80px; }
+
+/* Hero */
+.hero {
+  text-align: center;
+  padding: 60px 0 40px;
+  border-bottom: 1px solid var(--border);
+  margin-bottom: 48px;
+}
+.hero h1 {
+  font-size: 2.2em;
+  font-weight: 800;
+  background: linear-gradient(135deg, var(--accent), var(--accent2));
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  margin-bottom: 12px;
+}
+.hero p { color: var(--text-dim); font-size: 1.05em; max-width: 640px; margin: 0 auto; }
+
+/* Sections */
+section { margin-bottom: 56px; }
+h2 {
+  font-size: 1.55em;
+  font-weight: 700;
+  margin-bottom: 20px;
+  padding-left: 14px;
+  border-left: 4px solid var(--accent);
+  color: var(--text);
+}
+h3 {
+  font-size: 1.2em;
+  font-weight: 600;
+  margin: 28px 0 14px;
+  color: var(--accent2);
+}
+h4 {
+  font-size: 1.05em;
+  font-weight: 600;
+  margin: 20px 0 10px;
+  color: var(--warn);
+}
+p { margin-bottom: 14px; }
+ul, ol { margin: 12px 0 16px 24px; }
+li { margin-bottom: 8px; }
+
+/* Cards */
+.card {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 20px 24px;
+  margin: 16px 0;
+}
+.card.highlight {
+  border-left: 4px solid var(--accent);
+}
+.card.warn {
+  border-left: 4px solid var(--warn);
+}
+.card.tip {
+  border-left: 4px solid var(--accent2);
+}
+
+/* Analogy box */
+.analogy {
+  background: linear-gradient(135deg, rgba(91,156,246,0.08), rgba(126,224,193,0.06));
+  border: 1px solid rgba(91,156,246,0.25);
+  border-radius: 10px;
+  padding: 20px 24px;
+  margin: 18px 0;
+}
+.analogy .label {
+  display: inline-block;
+  font-size: 0.8em;
+  font-weight: 700;
+  color: var(--accent);
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  margin-bottom: 8px;
+}
+
+/* Code */
+pre {
+  background: var(--bg-code);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 18px 20px;
+  overflow-x: auto;
+  margin: 14px 0;
+  font-size: 0.88em;
+  line-height: 1.6;
+}
+code {
+  font-family: "JetBrains Mono", "Fira Code", "Consolas", monospace;
+  color: var(--accent2);
+}
+pre code { color: var(--text); }
+.code-keyword { color: var(--purple); }
+.code-comment { color: #6b7280; font-style: italic; }
+.code-string { color: var(--warn); }
+.code-func { color: var(--accent); }
+
+/* Math */
+.math {
+  display: block;
+  text-align: center;
+  margin: 16px 0;
+  font-family: "Cambria Math", "Latin Modern Math", serif;
+  font-size: 1.05em;
+  color: var(--text);
+}
+.math-inline {
+  font-family: "Cambria Math", "Latin Modern Math", serif;
+  font-style: italic;
+}
+
+/* Table */
+table {
+  width: 100%;
+  border-collapse: collapse;
+  margin: 16px 0;
+  font-size: 0.92em;
+}
+th, td {
+  border: 1px solid var(--border);
+  padding: 10px 14px;
+  text-align: left;
+}
+th {
+  background: var(--bg-card);
+  font-weight: 600;
+  color: var(--accent);
+}
+tr:nth-child(even) { background: rgba(255,255,255,0.02); }
+
+/* Enumeration tree visualization */
+.tree-container {
+  background: var(--bg-code);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 20px;
+  margin: 16px 0;
+  overflow-x: auto;
+}
+.tree-svg { width: 100%; min-height: 320px; display: block; }
+.tree-controls {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+  margin: 12px 0;
+  align-items: center;
+}
+.btn {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  color: var(--text);
+  padding: 7px 16px;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 0.9em;
+  transition: all 0.2s;
+}
+.btn:hover { border-color: var(--accent); color: var(--accent); }
+.btn.active { background: var(--accent); color: #fff; border-color: var(--accent); }
+.tree-legend {
+  display: flex;
+  gap: 18px;
+  flex-wrap: wrap;
+  margin-top: 10px;
+  font-size: 0.85em;
+  color: var(--text-dim);
+}
+.legend-item { display: flex; align-items: center; gap: 6px; }
+.legend-dot { width: 12px; height: 12px; border-radius: 3px; }
+
+/* Step flow */
+.step-flow {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+  margin: 18px 0;
+}
+.step-item {
+  display: flex;
+  gap: 16px;
+  position: relative;
+  padding-bottom: 20px;
+}
+.step-item:last-child { padding-bottom: 0; }
+.step-num {
+  flex-shrink: 0;
+  width: 32px;
+  height: 32px;
+  background: var(--accent);
+  color: #fff;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 700;
+  font-size: 0.9em;
+}
+.step-item:not(:last-child)::after {
+  content: '';
+  position: absolute;
+  left: 15px;
+  top: 36px;
+  bottom: 0;
+  width: 2px;
+  background: var(--border);
+}
+.step-content { flex: 1; }
+.step-content strong { color: var(--accent2); }
+
+/* Comparison */
+.comparison-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+  margin: 16px 0;
+}
+@media (max-width: 640px) {
+  .comparison-grid { grid-template-columns: 1fr; }
+}
+.comp-card {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 18px;
+}
+.comp-card h4 { margin-top: 0; }
+
+/* Library cards */
+.lib-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 16px;
+  margin: 16px 0;
+}
+.lib-card {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 18px;
+  transition: border-color 0.2s;
+}
+.lib-card:hover { border-color: var(--accent); }
+.lib-card .lib-name {
+  font-weight: 700;
+  font-size: 1.1em;
+  color: var(--accent);
+  margin-bottom: 6px;
+}
+.lib-card .lib-lang {
+  display: inline-block;
+  font-size: 0.75em;
+  background: rgba(91,156,246,0.15);
+  color: var(--accent);
+  padding: 2px 8px;
+  border-radius: 4px;
+  margin-bottom: 8px;
+}
+.lib-card p { font-size: 0.9em; color: var(--text-dim); margin-bottom: 0; }
+
+/* TOC */
+.toc {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 20px 24px;
+  margin-bottom: 40px;
+}
+.toc h3 { margin-top: 0; color: var(--text); }
+.toc ol { margin-left: 20px; }
+.toc a { color: var(--text-dim); text-decoration: none; transition: color 0.2s; }
+.toc a:hover { color: var(--accent); }
+
+/* Pruning visualization */
+.pruning-demo {
+  background: var(--bg-code);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 20px;
+  margin: 16px 0;
+}
+.pruning-svg { width: 100%; display: block; }
+
+/* Footer */
+footer {
+  text-align: center;
+  padding: 40px 0 20px;
+  border-top: 1px solid var(--border);
+  color: var(--text-dim);
+  font-size: 0.85em;
+}
+</style>
+</head>
+<body>
+<div class="container">
+
+<!-- ===== Hero ===== -->
+<div class="hero">
+  <h1>BKZ / BKZ 2.0 中找最短向量的枚举方法</h1>
+  <p>从直觉到代码，搞懂格密码中最基础的最短向量搜索技术——枚举（Enumeration）</p>
+</div>
+
+<!-- ===== TOC ===== -->
+<div class="toc">
+  <h3>目录</h3>
+  <ol>
+    <li><a href="#sec1">为什么需要枚举？——从一个寻宝游戏说起</a></li>
+    <li><a href="#sec2">枚举的核心思想：在高维空间里"逐层试错"</a></li>
+    <li><a href="#sec3">数学基础：Gram-Schmidt 正交化为什么是关键？</a></li>
+    <li><a href="#sec4">Schnorr-Euchner 枚举：具体怎么做？</a></li>
+    <li><a href="#sec5">交互式枚举树可视化</a></li>
+    <li><a href="#sec6">剪枝（Pruning）：用概率换速度的艺术</a></li>
+    <li><a href="#sec7">BKZ 2.0 的三大改进</a></li>
+    <li><a href="#sec8">最简 Python 代码实现</a></li>
+    <li><a href="#sec9">工业界使用的库</a></li>
+    <li><a href="#sec10">总结与延伸阅读</a></li>
+  </ol>
+</div>
+
+<!-- ===== Section 1: 为什么需要枚举 ===== -->
+<section id="sec1">
+<h2>1. 为什么需要枚举？——从一个寻宝游戏说起</h2>
+
+<p>想象你站在一个巨大的仓库里，仓库里密密麻麻地摆放着无数个箱子。每个箱子上都标着一个坐标（整数），箱子的"重量"就是这个坐标到原点的距离。你的任务是：<strong>找到最轻的那个非空箱子</strong>。</p>
+
+<p>这就是格（Lattice）中的<strong>最短向量问题（SVP, Shortest Vector Problem）</strong>：给定一组格基向量，找出格中长度最短的非零向量。</p>
+
+<div class="analogy">
+  <span class="label">通俗类比</span>
+  <p>格就像一个高维空间中的"无限点阵"，每个点都是基向量的整数线性组合。枚举（Enumeration）就是一种<strong>系统性地搜索这些点</strong>的方法——它不依赖任何随机性，保证能找到答案（如果搜完的话），但代价是时间可能很长。</p>
+</div>
+
+<h3>为什么不直接暴力搜索？</h3>
+<p>因为格的维度可能是几十甚至上百维。在 n 维空间中，半径为 R 的球内大约有 <span class="math-inline">R^n / det(L)</span> 个格点，这是一个指数级的数量。直接遍历所有格点在维度超过 30 后就完全不可行了。</p>
+
+<p>枚举的聪明之处在于：它<strong>不是漫无目的地搜索</strong>，而是利用格的结构，把搜索空间组织成一棵树，然后用深度优先搜索 + 剪枝，只探索那些"有可能产生最短向量"的分支。</p>
+
+<div class="card highlight">
+  <strong>一句话总结：</strong>枚举 = 把高维格点搜索转化为一棵搜索树，用深度优先遍历 + 半径约束剪枝，在多项式空间内找到最短向量。
+</div>
+</section>
+
+<!-- ===== Section 2: 核心思想 ===== -->
+<section id="sec2">
+<h2>2. 枚举的核心思想：在高维空间里"逐层试错"</h2>
+
+<h3>2.1 从二维开始理解</h3>
+<p>假设我们有一个二维格，基向量为 <span class="math-inline">b₁, b₂</span>。格中的任意向量可以写成：</p>
+<div class="math">v = v₁·b₁ + v₂·b₂，其中 v₁, v₂ 是整数</div>
+
+<p>我们要找 <span class="math-inline">||v||</span> 最小的非零 v。直接的做法是遍历所有整数对 (v₁, v₂)，但这是无限的！</p>
+
+<p>关键观察：如果我们已经知道当前找到的最短向量长度是 R（初始时可以取一个较大的上界），那么只需要考虑满足 <span class="math-inline">||v|| ≤ R</span> 的向量。这把搜索限制在一个半径为 R 的球内。</p>
+
+<h3>2.2 逐层固定坐标</h3>
+<p>枚举的核心技巧是<strong>从最后一个坐标开始，逐层向前固定</strong>：</p>
+
+<div class="step-flow">
+  <div class="step-item">
+    <div class="step-num">1</div>
+    <div class="step-content">
+      <strong>先固定 vₙ（最后一个坐标）</strong><br>
+      由于正交化后 bₙ* 只贡献 vₙ·||bₙ*|| 的长度，vₙ 的取值范围被限制在 <span class="math-inline">[-R/||bₙ*||, R/||bₙ*||]</span>
+    </div>
+  </div>
+  <div class="step-item">
+    <div class="step-num">2</div>
+    <div class="step-content">
+      <strong>再固定 vₙ₋₁</strong><br>
+      在 vₙ 已确定的情况下，vₙ₋₁ 的取值范围由剩余的"长度预算"决定
+    </div>
+  </div>
+  <div class="step-item">
+    <div class="step-num">3</div>
+    <div class="step-content">
+      <strong>继续向前...</strong><br>
+      每一层都根据已固定的坐标和剩余长度预算，确定当前坐标的合法范围
+    </div>
+  </div>
+  <div class="step-item">
+    <div class="step-num">4</div>
+    <div class="step-content">
+      <strong>到达 v₁（叶子节点）</strong><br>
+      所有坐标都确定了，计算完整向量长度，如果比 R 小就更新 R
+    </div>
+  </div>
+</div>
+
+<div class="analogy">
+  <span class="label">又一个类比</span>
+  <p>这就像组合锁开锁：你从最后一位开始拨，每一位都有一个允许的范围（由"还剩多少长度预算"决定）。如果某一位的所有可能都试过了还没找到更短的，就回退到上一位换下一个值。这就是<strong>深度优先搜索（DFS）</strong>。</p>
+</div>
+
+<h3>2.3 为什么从后往前？</h3>
+<p>这是因为 Gram-Schmidt 正交化后，<span class="math-inline">bₙ*</span> 通常是最短的正交向量（在约化好的基中），对应的坐标 vₙ 的允许范围最大。从范围最大的层开始，可以更早地进行剪枝。</p>
+</section>
+
+<!-- ===== Section 3: 数学基础 ===== -->
+<section id="sec3">
+<h2>3. 数学基础：Gram-Schmidt 正交化为什么是关键？</h2>
+
+<p>枚举算法的效率<strong>完全依赖</strong>于 Gram-Schmidt 正交化（GSO）。让我们理解为什么。</p>
+
+<h3>3.1 什么是 Gram-Schmidt 正交化？</h3>
+<p>给定一组基向量 <span class="math-inline">b₁, ..., bₙ</span>，GSO 产生一组正交向量 <span class="math-inline">b₁*, ..., bₙ*</span> 和系数 <span class="math-inline">μᵢⱼ</span>：</p>
+
+<div class="math">bᵢ* = bᵢ - Σⱼ₌₁^{i-1} μᵢⱼ · bⱼ*，其中 μᵢⱼ = ⟨bᵢ, bⱼ*⟩ / ||bⱼ*||²</div>
+
+<p>关键性质：<span class="math-inline">b₁*, ..., bₙ*</span> 两两正交，且它们张成的空间和原基相同。</p>
+
+<h3>3.2 为什么正交化如此重要？</h3>
+<p>因为正交向量的长度可以<strong>分解</strong>！对于格向量 <span class="math-inline">v = Σ vᵢ·bᵢ</span>，它在第 k 层投影的平方长度为：</p>
+
+<div class="math">||πₖ(v)||² = Σᵢ₌ₖⁿ (vᵢ + Σⱼ₌ᵢ₊₁ⁿ μⱼᵢ·vⱼ)² · ||bᵢ*||²</div>
+
+<p>这个公式看起来复杂，但核心思想很简单：</p>
+
+<div class="card tip">
+  <strong>核心洞察：</strong>由于 bᵢ* 两两正交，向量长度的平方是各层贡献的<strong>求和</strong>。当我们从后往前固定坐标时，每增加一层，部分长度只会<strong>增加</strong>，不会减少。这意味着——如果当前的部分长度已经超过了半径 R，那么这个分支的所有后代都不可能产生更短的向量，可以直接剪掉！
+</div>
+
+<h3>3.3 投影算子 πₖ</h3>
+<p><span class="math-inline">πₖ(v)</span> 表示 v 在 <span class="math-inline">span(bₖ*, ..., bₙ*)</span> 上的投影。换句话说，它是 v 去掉前 k-1 个分量后的"尾部"。</p>
+
+<p>枚举的每一层 k 都维护一个部分长度 <span class="math-inline">||πₖ(v)||²</span>，当它超过 R² 时就剪枝。</p>
+
+<h3>3.4 基的质量决定枚举效率</h3>
+<p>枚举树的大小高度依赖于 GSO 向量的长度分布。在一个 LLL 约化的基中，<span class="math-inline">||bᵢ*||</span> 通常呈几何级数下降（GSA 假设）。约化质量越好，枚举越快——这就是为什么 BKZ 要先做 LLL，然后在块内反复调用枚举的原因。</p>
+</section>
+
+<!-- ===== Section 4: Schnorr-Euchner 枚举 ===== -->
+<section id="sec4">
+<h2>4. Schnorr-Euchner 枚举：具体怎么做？</h2>
+
+<p>Schnorr 和 Euchner 在 1994 年提出的枚举算法是现代所有枚举实现的基础。它的核心创新是<strong>之字形（zig-zag）搜索策略</strong>。</p>
+
+<h3>4.1 之字形搜索：为什么从 0 开始向外扩展？</h3>
+<p>在每一层，当前坐标 vₖ 的合法范围是一个整数区间 <span class="math-inline">[lo, hi]</span>。普通的做法是从 lo 遍历到 hi，但 Schnorr-Euchner 的做法是：</p>
+
+<div class="card highlight">
+  <strong>之字形策略：</strong>从最接近 0 的整数开始，然后依次尝试 +1, -1, +2, -2, ... 即 0, 1, -1, 2, -2, 3, -3, ...<br><br>
+  这样做的原因是：<strong>最短向量的坐标通常接近 0</strong>（因为短向量的系数不会太大）。先试接近 0 的值，能更快地找到短向量，从而更快地缩小半径 R，进而更激进地剪枝。
+</div>
+
+<h3>4.2 算法的完整步骤</h3>
+
+<div class="step-flow">
+  <div class="step-item">
+    <div class="step-num">1</div>
+    <div class="step-content">
+      <strong>初始化</strong><br>
+      计算 GSO 信息（bᵢ* 和 μᵢⱼ），设置初始半径 R（通常取 ||b₁|| 或某个上界），所有坐标 vᵢ = 0，部分长度 c = 0，当前层 k = n
+    </div>
+  </div>
+  <div class="step-item">
+    <div class="step-num">2</div>
+    <div class="step-content">
+      <strong>计算当前层的合法范围</strong><br>
+      根据剩余长度预算 R² - c，计算 vₖ 的取值范围 [lo, hi]，并选择最接近 0 的值作为起点
+    </div>
+  </div>
+  <div class="step-item">
+    <div class="step-num">3</div>
+    <div class="step-content">
+      <strong>向下走一层（k → k-1）</strong><br>
+      固定 vₖ，更新部分长度 c，进入下一层。如果 k = 1（到达叶子），计算完整向量长度
+    </div>
+  </div>
+  <div class="step-item">
+    <div class="step-num">4</div>
+    <div class="step-content">
+      <strong>更新最短向量</strong><br>
+      如果叶子节点的向量长度 < R，更新 R 和最优解
+    </div>
+  </div>
+  <div class="step-item">
+    <div class="step-num">5</div>
+    <div class="step-content">
+      <strong>回退（k → k+1）</strong><br>
+      当前层的所有值都试过了，或者部分长度超过 R 了，回退到上一层，换下一个 vₖ 值（之字形顺序）
+    </div>
+  </div>
+  <div class="step-item">
+    <div class="step-num">6</div>
+    <div class="step-content">
+      <strong>终止</strong><br>
+      当回退到 k > n 时，搜索树遍历完毕，返回最优解
+    </div>
+  </div>
+</div>
+
+<h3>4.3 关键数据结构</h3>
+<p>在实现中，需要维护以下变量：</p>
+<ul>
+  <li><code>v[1..n]</code>：当前路径的整数坐标</li>
+  <li><code>c[1..n+1]</code>：部分长度，c[k] = ||πₖ(v)||²</li>
+  <li><code>w[1..n]</code>：辅助变量，用于快速计算下一层的中心偏移</li>
+  <li><code>R²</code>：当前最短长度的平方</li>
+</ul>
+
+<p>其中 <code>w[k]</code> 的递推关系是：</p>
+<div class="math">w[k] = v[k] + Σⱼ₌ₖ₊₁ⁿ μⱼₖ · v[j]</div>
+<p>它表示在第 k 层，已固定坐标对当前层中心的偏移贡献。</p>
+</section>
+
+<!-- ===== Section 5: 交互式枚举树可视化 ===== -->
+<section id="sec5">
+<h2>5. 交互式枚举树可视化</h2>
+
+<p>下面是一个简化的 3 维枚举树演示。根节点在最上层（对应 v₃），向下逐层固定 v₂、v₁。绿色节点表示被访问的路径，红色节点表示被剪枝的分支，黄色节点表示找到更短向量的叶子。</p>
+
+<div class="tree-container">
+  <div class="tree-controls">
+    <button class="btn active" onclick="setMode('full')">完整枚举</button>
+    <button class="btn" onclick="setMode('pruned')">剪枝枚举</button>
+    <button class="btn" onclick="resetTree()">重置</button>
+    <button class="btn" onclick="stepTree()">单步执行</button>
+    <button class="btn" onclick="autoPlay()">自动播放</button>
+  </div>
+  <svg class="tree-svg" id="treeSvg" viewBox="0 0 800 360"></svg>
+  <div class="tree-legend">
+    <div class="legend-item"><div class="legend-dot" style="background:#5b9cf6"></div>当前节点</div>
+    <div class="legend-item"><div class="legend-dot" style="background:#7ee0c1"></div>已访问路径</div>
+    <div class="legend-item"><div class="legend-dot" style="background:#f07070"></div>被剪枝</div>
+    <div class="legend-item"><div class="legend-dot" style="background:#f0b460"></div>找到更短向量</div>
+    <div class="legend-item"><div class="legend-dot" style="background:#3a3f52"></div>未访问</div>
+  </div>
+  <p style="margin-top:12px; font-size:0.9em; color:var(--text-dim);" id="treeStatus">点击"单步执行"开始演示枚举过程</p>
+</div>
+
+<div class="card tip">
+  <strong>观察要点：</strong>
+  <ul>
+    <li>枚举从最底层（v₃）开始，之字形顺序尝试 0, 1, -1, 2, -2...</li>
+    <li>每向下走一层，部分长度增加；如果超过当前半径 R²，整个子树被剪掉</li>
+    <li>找到更短向量后 R 缩小，后续的剪枝会更加激进</li>
+    <li>剪枝模式下，大量分支被直接跳过，搜索节点数大幅减少</li>
+  </ul>
+</div>
+</section>
+
+<!-- ===== Section 6: 剪枝 ===== -->
+<section id="sec6">
+<h2>6. 剪枝（Pruning）：用概率换速度的艺术</h2>
+
+<h3>6.1 标准剪枝：球形约束</h3>
+<p>上面描述的 Schnorr-Euchner 枚举使用的是<strong>球形剪枝</strong>：在每一层 k，只要部分长度 <span class="math-inline">||πₖ(v)||² > R²</span> 就剪枝。这是精确的——只要搜完，一定能找到最短向量。</p>
+
+<p>但问题是：即使有球形剪枝，枚举树的节点数在高维仍然非常大。例如在维度 50+ 的块中，完整枚举可能需要数十亿次操作。</p>
+
+<h3>6.2 概率剪枝：用更小的"预算"限制每一层</h3>
+<p>剪枝的核心思想是：<strong>不在每一层都用完整的 R² 作为预算，而是用一个更小的逐层递减的预算</strong>。</p>
+
+<p>具体来说，选择一组递增的半径 <span class="math-inline">R₁ ≤ R₂ ≤ ... ≤ Rₙ = R</span>，在第 k 层（从后往前数第 k 层）使用约束：</p>
+<div class="math">||πₖ(v)||² ≤ Rₖ²</div>
+
+<p>由于 Rₖ < R（对于 k < n），这比标准球形约束更严格，能剪掉更多分支。但代价是：<strong>最短向量可能在某一层就被剪掉了</strong>，因此算法变成概率性的。</p>
+
+<div class="pruning-demo">
+  <svg class="pruning-svg" id="pruningSvg" viewBox="0 0 800 280"></svg>
+  <p style="text-align:center; font-size:0.85em; color:var(--text-dim); margin-top:8px;">
+    上图：标准球形剪枝（每层预算相同） vs 概率剪枝（逐层递减预算）。概率剪枝在浅层更严格，剪掉更多分支。
+  </p>
+</div>
+
+<h3>6.3 剪枝函数与成功概率</h3>
+<p>剪枝策略由一个<strong>剪枝函数</strong> <span class="math-inline">f: {1,...,n} → [0,1]</span> 描述，满足 f(1) ≤ f(2) ≤ ... ≤ f(n) = 1。第 k 层的预算是 <span class="math-inline">R² · f(k)</span>。</p>
+
+<p>给定一个剪枝函数，可以计算：</p>
+<ul>
+  <li><strong>成功概率 p</strong>：最短向量不被剪掉的概率</li>
+  <li><strong>期望节点数 N</strong>：枚举树的期望大小</li>
+  <li><strong>期望运行时间</strong>：N / p（因为失败后需要重试）</li>
+</ul>
+
+<p>最优剪枝函数就是在给定成功概率 p 的前提下，最小化 N/p 的那个函数。</p>
+
+<h3>6.4 Extreme Pruning（极端剪枝）</h3>
+<p>Gama、Nguyen 和 Regev 在 EUROCRYPT 2010 提出了<strong>极端剪枝</strong>，这是 BKZ 2.0 的核心改进之一。</p>
+
+<div class="card warn">
+  <strong>极端剪枝的核心思想：</strong>把成功概率 p 设得非常低（比如 1% 甚至更低），这样单次枚举极快，但需要重复很多次。由于期望运行时间 = 单次时间 / p，而极端剪枝下单次时间的下降幅度远超 p 的下降幅度，因此总体期望运行时间反而更短！
+</div>
+
+<p>理论上，极端剪枝相比完整枚举可以获得 <span class="math-inline">2^{n/2}</span> 的指数级加速。这使得 BKZ 的块大小从原来的 β ≈ 20-30 提升到了 β ≈ 40-60，直接改写了格密码的安全参数估计。</p>
+
+<h3>6.5 离散剪枝（Discrete Pruning）</h3>
+<p>近年来的另一个改进是离散剪枝：不使用连续的剪枝函数，而是在每一层只允许某些特定的坐标值组合（"标签"）。这进一步减少了搜索空间，并且可以更精确地控制成功概率。</p>
+</section>
+
+<!-- ===== Section 7: BKZ 2.0 ===== -->
+<section id="sec7">
+<h2>7. BKZ 2.0 的三大改进</h2>
+
+<p>BKZ（Block Korkine-Zolotarev）算法由 Schnorr 和 Euchner 于 1994 年提出。2011 年，Chen 和 Nguyen 提出了 BKZ 2.0，引入了三项关键改进，使其成为至今仍在广泛使用的格基约化标准算法。</p>
+
+<div class="comparison-grid">
+  <div class="comp-card">
+    <h4 style="color:var(--accent);">原始 BKZ (1994)</h4>
+    <ul>
+      <li>完整枚举（无概率剪枝）</li>
+      <li>块大小 β ≤ 30 才实用</li>
+      <li>无预处理</li>
+      <li>固定轮数</li>
+      <li>安全估计偏乐观</li>
+    </ul>
+  </div>
+  <div class="comp-card">
+    <h4 style="color:var(--accent2);">BKZ 2.0 (2011)</h4>
+    <ul>
+      <li>极端剪枝枚举</li>
+      <li>块大小 β ≈ 40-60 实用</li>
+      <li>块内预处理（更小的 BKZ）</li>
+      <li>提前终止</li>
+      <li>更准确的安全估计</li>
+    </ul>
+  </div>
+</div>
+
+<h3>7.1 改进一：极端剪枝枚举</h3>
+<p>如上一节所述，用极端剪枝替代完整枚举，获得指数级加速。这是 BKZ 2.0 最重要的改进。</p>
+
+<h3>7.2 改进二：块内预处理（Preprocessing）</h3>
+<p>在对一个大小为 β 的块调用 SVP 枚举之前，先对这个块做一次更小的 BKZ（块大小为 β/2 或更小）。这改善了块内基的质量，使后续的枚举更快。</p>
+
+<div class="analogy">
+  <span class="label">类比</span>
+  <p>就像打扫房间：先粗略整理一遍（小 BKZ），再仔细清扫每个角落（枚举）。预处理虽然花了一些时间，但让后续的枚举效率提升更多，总体更快。</p>
+</div>
+
+<h3>7.3 改进三：提前终止（Early Termination）</h3>
+<p>原始 BKZ 通常运行固定的轮数（比如 8-16 轮）。BKZ 2.0 引入了提前终止：当基的质量在连续几轮中没有显著改善时，就停止。这避免了在已经收敛的基上浪费时间。</p>
+
+<h3>7.4 BKZ 在做什么？</h3>
+<p>理解了枚举之后，BKZ 本身就很简单了：</p>
+<ol>
+  <li>先对整个基做 LLL 约化</li>
+  <li>滑动一个大小为 β 的窗口，对窗口内的子格调用枚举求 SVP</li>
+  <li>用找到的短向量更新基，然后做 size reduction</li>
+  <li>窗口向前滑动，重复直到收敛</li>
+</ol>
+<p>枚举就是 BKZ 内部的"SVP 预言机"——BKZ 的每一步都在调用枚举。</p>
+</section>
+
+<!-- ===== Section 8: 代码实现 ===== -->
+<section id="sec8">
+<h2>8. 最简 Python 代码实现</h2>
+
+<p>下面是一个<strong>教学用</strong>的最简枚举实现。它省略了浮点优化、剪枝函数优化等工程细节，但完整保留了 Schnorr-Euchner 枚举的核心逻辑。</p>
+
+<h3>8.1 Gram-Schmidt 正交化</h3>
+<pre><code><span class="code-keyword">import</span> numpy <span class="code-keyword">as</span> np
+
+<span class="code-keyword">def</span> <span class="code-func">gram_schmidt</span>(B):
+    <span class="code-comment">"""计算 Gram-Schmidt 正交化，返回正交基 Bstar 和系数 mu"""</span>
+    n = B.shape[0]
+    Bstar = np.zeros_like(B, dtype=<span class="code-func">float</span>)
+    mu = np.zeros((n, n), dtype=<span class="code-func">float</span>)
+    <span class="code-keyword">for</span> i <span class="code-keyword">in</span> <span class="code-func">range</span>(n):
+        Bstar[i] = B[i].astype(<span class="code-func">float</span>)
+        <span class="code-keyword">for</span> j <span class="code-keyword">in</span> <span class="code-func">range</span>(i):
+            mu[i, j] = np.dot(B[i], Bstar[j]) / np.dot(Bstar[j], Bstar[j])
+            Bstar[i] -= mu[i, j] * Bstar[j]
+    <span class="code-keyword">return</span> Bstar, mu</code></pre>
+
+<h3>8.2 Schnorr-Euchner 枚举（核心）</h3>
+<pre><code><span class="code-keyword">def</span> <span class="code-func">enumerate_svp</span>(B, R=None):
+    <span class="code-comment">"""
+    Schnorr-Euchner 枚举算法，求格 L(B) 的最短向量。
+    B: n×m 的格基矩阵（n 行向量）
+    R: 初始搜索半径（平方），None 则用 ||b_1||^2
+    返回: (最短向量, 最短长度平方)
+    """</span>
+    n = B.shape[0]
+    Bstar, mu = gram_schmidt(B)
+    norm_sq = np.array([np.dot(Bstar[i], Bstar[i]) <span class="code-keyword">for</span> i <span class="code-keyword">in</span> <span class="code-func">range</span>(n)])
+
+    <span class="code-comment"># 初始半径：用第一个基向量的长度</span>
+    <span class="code-keyword">if</span> R <span class="code-keyword">is</span> <span class="code-keyword">None</span>:
+        R = np.dot(B[0], B[0])
+
+    <span class="code-comment"># 状态变量（1-indexed 更直观，这里用 0-indexed）</span>
+    v = np.zeros(n, dtype=<span class="code-func">int</span>)       <span class="code-comment"># 当前坐标</span>
+    c = np.zeros(n + <span class="code-func">1</span>, dtype=<span class="code-func">float</span>)   <span class="code-comment"># c[k] = ||pi_k(v)||^2</span>
+    w = np.zeros(n, dtype=<span class="code-func">float</span>)       <span class="code-comment"># 辅助偏移量</span>
+
+    best_v = None
+    best_norm = R
+
+    k = n - <span class="code-func">1</span>  <span class="code-comment"># 从最后一层开始（0-indexed）</span>
+
+    <span class="code-comment"># 之字形搜索的方向：+1, -1, +2, -2, ...</span>
+    <span class="code-comment"># 用 delta 记录当前步长方向</span>
+    delta = np.ones(n, dtype=<span class="code-func">int</span>)
+    last_nonzero = n - <span class="code-func">1</span>
+
+    <span class="code-keyword">while</span> <span class="code-keyword">True</span>:
+        <span class="code-comment"># 计算当前层 v[k] 的合法范围中心</span>
+        w[k] = -np.sum(mu[k+<span class="code-func">1</span>:n, k] * v[k+<span class="code-func">1</span>:n])
+        center = -w[k]
+
+        <span class="code-comment"># 剩余长度预算</span>
+        remaining = R - c[k+<span class="code-func">1</span>]
+        <span class="code-keyword">if</span> remaining < <span class="code-func">0</span>:
+            <span class="code-comment"># 不可能，直接回退</span>
+            k += <span class="code-func">1</span>
+            <span class="code-keyword">if</span> k >= n:
+                <span class="code-keyword">break</span>
+            <span class="code-keyword">continue</span>
+
+        <span class="code-comment"># v[k] 的范围: [center - sqrt(remaining/norm_sq[k]), center + ...]</span>
+        radius_k = np.sqrt(remaining / norm_sq[k])
+        lo = int(np.ceil(center - radius_k))
+        hi = int(np.floor(center + radius_k))
+
+        <span class="code-comment"># 之字形：从最接近 center 的整数开始</span>
+        <span class="code-keyword">if</span> v[k] == <span class="code-func">0</span> <span class="code-keyword">and</span> delta[k] == <span class="code-func">1</span>:
+            <span class="code-comment"># 第一次进入这一层，选最接近 center 的整数</span>
+            v[k] = int(np.round(center))
+            <span class="code-keyword">if</span> v[k] < lo: v[k] = lo
+            <span class="code-keyword">if</span> v[k] > hi: v[k] = hi
+        <span class="code-keyword">else</span>:
+            <span class="code-comment"># 之字形步进</span>
+            <span class="code-keyword">if</span> delta[k] > <span class="code-func">0</span>:
+                v[k] += delta[k]
+                delta[k] = -delta[k] - <span class="code-func">1</span>  <span class="code-comment"># +1 -> -2, +2 -> -3</span>
+            <span class="code-keyword">else</span>:
+                v[k] += delta[k]
+                delta[k] = -delta[k]      <span class="code-comment"># -1 -> +1, -2 -> +2</span>
+
+        <span class="code-comment"># 检查是否超出范围</span>
+        <span class="code-keyword">if</span> v[k] < lo <span class="code-keyword">or</span> v[k] > hi:
+            <span class="code-comment"># 这一层所有值都试过了，回退</span>
+            v[k] = <span class="code-func">0</span>
+            delta[k] = <span class="code-func">1</span>
+            k += <span class="code-func">1</span>
+            <span class="code-keyword">if</span> k >= n:
+                <span class="code-keyword">break</span>
+            <span class="code-keyword">continue</span>
+
+        <span class="code-comment"># 更新部分长度</span>
+        new_c = c[k+<span class="code-func">1</span>] + (v[k] + w[k])**<span class="code-func">2</span> * norm_sq[k]
+
+        <span class="code-keyword">if</span> new_c >= R:
+            <span class="code-comment"># 剪枝：部分长度超过半径，跳过这个值</span>
+            <span class="code-comment"># 继续之字形下一个值</span>
+            <span class="code-keyword">continue</span>
+
+        c[k] = new_c
+
+        <span class="code-keyword">if</span> k > <span class="code-func">0</span>:
+            <span class="code-comment"># 向下走一层</span>
+            k -= <span class="code-func">1</span>
+        <span class="code-keyword">else</span>:
+            <span class="code-comment"># 到达叶子节点（k=0），找到一个完整向量</span>
+            <span class="code-keyword">if</span> new_c < best_norm <span class="code-keyword">and</span> np.<span class="code-func">any</span>(v != <span class="code-func">0</span>):
+                best_norm = new_c
+                best_v = v.copy()
+                R = new_c  <span class="code-comment"># 缩小半径！</span>
+
+    <span class="code-comment"># 还原格向量</span>
+    <span class="code-keyword">if</span> best_v <span class="code-keyword">is not</span> <span class="code-keyword">None</span>:
+        best_vector = np.dot(best_v, B)
+        <span class="code-keyword">return</span> best_vector, best_norm
+    <span class="code-keyword">return</span> <span class="code-keyword">None</span>, <span class="code-keyword">None</span></code></pre>
+
+<h3>8.3 测试一下</h3>
+<pre><code><span class="code-comment"># 一个简单的二维格</span>
+B = np.array([[<span class="code-func">3</span>, <span class="code-func">1</span>],
+              [<span class="code-func">1</span>, <span class="code-func">4</span>]])
+
+v, norm = enumerate_svp(B)
+<span class="code-func">print</span>(<span class="code-string">"最短向量:"</span>, v)
+<span class="code-func">print</span>(<span class="code-string">"长度平方:"</span>, norm)
+<span class="code-comment"># 最短向量: [1 0] 或 [-1 0]（b1-b2 的组合），长度平方 = 5</span></code></pre>
+
+<div class="card warn">
+  <strong>注意：</strong>这是教学实现，有几个简化：
+  <ul>
+    <li>没有概率剪枝（只用球形剪枝），高维会很慢</li>
+    <li>用 numpy 浮点运算，工业实现用高精度浮点或 dd 类型</li>
+    <li>之字形逻辑做了简化，标准实现更精细</li>
+    <li>没有处理数值稳定性问题</li>
+  </ul>
+  但核心思想——逐层固定坐标、部分长度递推、之字形搜索、半径更新剪枝——是完全一致的。
+</div>
+</section>
+
+<!-- ===== Section 9: 工业库 ===== -->
+<section id="sec9">
+<h2>9. 工业界使用的库</h2>
+
+<p>实际使用中，你几乎不会自己实现枚举。下面是目前最主流的格基约化库：</p>
+
+<div class="lib-grid">
+  <div class="lib-card">
+    <div class="lib-name">fplll</div>
+    <span class="lib-lang">C++</span>
+    <p>最权威的格基约化库，实现了 LLL、BKZ、BKZ 2.0（含极端剪枝）、Slide Reduction、Self-Dual BKZ。使用浮点算术，支持多核。是 SageMath 的默认后端。<br><br>
+    <strong>GitHub:</strong> fplll/fplll</p>
+  </div>
+  <div class="lib-card">
+    <div class="lib-name">fpylll</div>
+    <span class="lib-lang">Python</span>
+    <p>fplll 的 Python 封装，让你可以在 Python 中直接调用 fplll 的所有功能。还额外实现了一些算法（如 BKZ 2.0 的 Python 版本），方便研究和实验。<br><br>
+    <strong>安装:</strong> pip install fpylll</p>
+  </div>
+  <div class="lib-card">
+    <div class="lib-name">G6K</div>
+    <span class="lib-lang">C++ / Python</span>
+    <p>General Sieve Kernel，由 Albrecht、Ducas 等人开发。统一了筛法（Sieving）和 BKZ 框架，引入了 Pump 抽象。在高维（>80）下比纯枚举更快，是目前创纪录的格基约化工具。<br><br>
+    <strong>GitHub:</strong> fplll/g6k</p>
+  </div>
+  <div class="lib-card">
+    <div class="lib-name">NTL</div>
+    <span class="lib-lang">C++</span>
+    <p>Victor Shoup 开发的数论库，包含格基约化（LLL、BKZ）和枚举实现。是历史最悠久的格算法库之一，Schnorr-Hörner 剪枝最早在 NTL 中实现。<br><br>
+    <strong>官网:</strong> shoup.net/ntl</p>
+  </div>
+  <div class="lib-card">
+    <div class="lib-name">SageMath</div>
+    <span class="lib-lang">Python</span>
+    <p>开源数学软件系统，内置了 fplll 和 NTL 的封装。可以用 <code>A.BKZ(block_size=40)</code> 一行代码完成 BKZ 约化，是研究和教学最方便的工具。<br><br>
+    <strong>官网:</strong> sagemath.org</p>
+  </div>
+  <div class="lib-card">
+    <div class="lib-name">g6k-rs</div>
+    <span class="lib-lang">Rust</span>
+    <p>G6K 的 Rust 重实现，提供 LLL/BKZ、剪枝枚举、CPU 筛法。性能优秀，适合需要内存安全和现代工具链的场景。<br><br>
+    <strong>Crates:</strong> g6k-rs</p>
+  </div>
+</div>
+
+<h3>9.1 快速上手：fpylll 示例</h3>
+<pre><code><span class="code-keyword">from</span> fpylll <span class="code-keyword">import</span> IntegerMatrix, LLL, BKZ
+
+<span class="code-comment"># 创建一个随机格基</span>
+A = IntegerMatrix.random(<span class="code-func">50</span>, <span class="code-string">"qary"</span>, k=<span class="code-func">25</span>, q=<span class="code-func">2</span>**<span class="code-func">20</span>)
+
+<span class="code-comment"># LLL 约化</span>
+LLL.reduction(A)
+
+<span class="code-comment"># BKZ 2.0 约化，块大小 40</span>
+par = BKZ.Param(block_size=<span class="code-func">40</span>, strategies=BKZ.DEFAULT_STRATEGY)
+BKZ.reduction(A, par)
+
+<span class="code-comment"># 查看最短向量</span>
+<span class="code-func">print</span>(A[<span class="code-func">0</span>].norm())</code></pre>
+
+<h3>9.2 如何选择？</h3>
+<table>
+  <tr>
+    <th>场景</th>
+    <th>推荐库</th>
+    <th>原因</th>
+  </tr>
+  <tr>
+    <td>学习 / 快速实验</td>
+    <td>SageMath / fpylll</td>
+    <td>Python 接口，一行代码调用</td>
+  </tr>
+  <tr>
+    <td>生产环境 C++</td>
+    <td>fplll</td>
+    <td>最成熟、最稳定、文档最全</td>
+  </tr>
+  <tr>
+    <td>高维挑战 / 创纪录</td>
+    <td>G6K</td>
+    <td>筛法+枚举混合，高维最快</td>
+  </tr>
+  <tr>
+    <td>密码分析研究</td>
+    <td>fpylll + G6K</td>
+    <td>灵活、可定制、社区活跃</td>
+  </tr>
+  <tr>
+    <td>Rust 项目</td>
+    <td>g6k-rs</td>
+    <td>内存安全，现代工具链</td>
+  </tr>
+</table>
+</section>
+
+<!-- ===== Section 10: 总结 ===== -->
+<section id="sec10">
+<h2>10. 总结与延伸阅读</h2>
+
+<h3>核心要点回顾</h3>
+<div class="card highlight">
+  <ol>
+    <li><strong>枚举是什么：</strong>把高维格点搜索组织成树，用 DFS + 半径约束剪枝找最短向量</li>
+    <li><strong>为什么需要 GSO：</strong>正交化让向量长度可分解为逐层求和，部分长度只增不减，从而可以剪枝</li>
+    <li><strong>之字形搜索：</strong>从 0 向外扩展（0,1,-1,2,-2...），更快找到短向量，更快缩小半径</li>
+    <li><strong>概率剪枝：</strong>逐层递减预算，用成功概率换速度；极端剪枝把概率压到极低，获得指数级加速</li>
+    <li><strong>BKZ 2.0：</strong>极端剪枝 + 块内预处理 + 提前终止，至今仍是标准</li>
+    <li><strong>工业实现：</strong>fplll（C++）、fpylll（Python）、G6K（筛法混合）、NTL、SageMath</li>
+  </ol>
+</div>
+
+<h3>延伸阅读</h3>
+<ul>
+  <li><strong>Schnorr & Euchner (1994)</strong> — "Lattice basis reduction: Improved practical algorithms and solving subset sum problems"（枚举算法原始论文）</li>
+  <li><strong>Chen & Nguyen (2011)</strong> — "BKZ 2.0: Better Lattice Security Estimates"（BKZ 2.0 原始论文）</li>
+  <li><strong>Gama, Nguyen & Regev (2010)</strong> — "Lattice Enumeration Using Extreme Pruning"（极端剪枝原始论文）</li>
+  <li><strong>Albrecht et al. (2019)</strong> — "The General Sieve Kernel and New Records in Lattice Reduction"（G6K 论文）</li>
+  <li><strong>fplll 文档</strong> — fplll.github.io/fplll/</li>
+</ul>
+
+<h3>枚举 vs 筛法：未来趋势</h3>
+<p>值得注意的是，近年来<strong>筛法（Sieving）</strong>在高维 SVP 中逐渐超越枚举。筛法的时间复杂度是 <span class="math-inline">2^{0.292n}</span>，而枚举是 <span class="math-inline">2^{0.5n}</span>（即使有极端剪枝）。但枚举的优势是<strong>多项式空间</strong>，而筛法需要指数空间。</p>
+<p>目前的趋势是<strong>混合方法</strong>（如 G6K 的 Pump）：在低维用枚举，高维用筛法，两者结合发挥各自优势。但枚举作为 BKZ 的核心组件，以及在中等维度（β ≤ 60）下的实用性，仍然不可替代。</p>
+</section>
+
+<footer>
+  <p>BKZ / BKZ 2.0 枚举方法完全指南 · 面向新手的通俗讲解</p>
+</footer>
+
+</div>
+
+<script>
+// ===== 枚举树可视化 =====
+const svg = document.getElementById('treeSvg');
+const NS = 'http://www.w3.org/2000/svg';
+
+// 简化的3维枚举树数据
+// 层级: level 0 = v3 (根), level 1 = v2, level 2 = v1 (叶子)
+const treeData = {
+  label: 'v3=0',
+  children: [
+    {
+      label: 'v2=0',
+      children: [
+        { label: 'v1=1', norm: 5.2, isSolution: true },
+        { label: 'v1=-1', norm: 5.2, isSolution: true },
+        { label: 'v1=2', norm: 12.1, pruned: true },
+      ]
+    },
+    {
+      label: 'v2=1',
+      children: [
+        { label: 'v1=0', norm: 8.3 },
+        { label: 'v1=-1', norm: 6.7, pruned: true },
+      ]
+    },
+    {
+      label: 'v2=-1',
+      children: [
+        { label: 'v1=0', norm: 8.3 },
+        { label: 'v1=1', norm: 6.7, pruned: true },
+      ]
+    },
+    {
+      label: 'v3=1',
+      children: [
+        { label: 'v2=0', children: [
+          { label: 'v1=0', norm: 9.5, pruned: true },
+        ]},
+      ],
+      pruned: true
+    },
+    {
+      label: 'v3=-1',
+      children: [
+        { label: 'v2=0', children: [
+          { label: 'v1=0', norm: 9.5, pruned: true },
+        ]},
+      ],
+      pruned: true
+    },
+  ]
+};
+
+let currentMode = 'full';
+let stepIndex = 0;
+let isPlaying = false;
+let playInterval = null;
+
+// 扁平化树为节点列表，按DFS顺序
+function flattenTree(node, depth = 0, parent = null) {
+  const nodes = [];
+  nodes.push({ node, depth, parent });
+  if (node.children) {
+    for (const child of node.children) {
+      nodes.push(...flattenTree(child, depth + 1, node));
+    }
+  }
+  return nodes;
+}
+
+const allNodes = flattenTree(treeData);
+
+// 计算节点位置
+function layoutNodes() {
+  const positions = {};
+  const levelWidths = [1, 3, 6];
+  const levelX = [400, 400, 400];
+  const levelY = [50, 150, 270];
+  const spacing = [200, 120, 80];
+
+  let counters = [0, 0, 0];
+
+  function layout(node, depth) {
+    const idx = counters[depth];
+    const totalAtLevel = allNodes.filter(n => n.depth === depth).length;
+    const x = 400 + (idx - (totalAtLevel - 1) / 2) * spacing[depth];
+    const y = levelY[depth];
+    positions[node.label + '_' + depth + '_' + idx] = { x, y, node, depth };
+    node._posKey = node.label + '_' + depth + '_' + idx;
+    counters[depth]++;
+
+    if (node.children) {
+      for (const child of node.children) {
+        layout(child, depth + 1);
+      }
+    }
+  }
+  layout(treeData, 0);
+  return positions;
+}
+
+const positions = layoutNodes();
+
+function drawTree(visitedSet, currentKey, prunedSet) {
+  svg.innerHTML = '';
+
+  // 画连线
+  for (const key in positions) {
+    const pos = positions[key];
+    if (!pos || pos.x === undefined || pos.y === undefined) continue;
+    if (pos.node.children) {
+      for (const child of pos.node.children) {
+        const childKey = child._posKey;
+        const childPos = positions[childKey];
+        if (!childPos || childPos.x === undefined || childPos.y === undefined) continue;
+        const line = document.createElementNS(NS, 'line');
+        line.setAttribute('x1', pos.x);
+        line.setAttribute('y1', pos.y);
+        line.setAttribute('x2', childPos.x);
+        line.setAttribute('y2', childPos.y);
+        const isVisited = visitedSet.has(key) && visitedSet.has(childKey);
+        const isPruned = prunedSet.has(childKey);
+        line.setAttribute('stroke', isPruned ? '#f07070' : (isVisited ? '#7ee0c1' : '#3a3f52'));
+        line.setAttribute('stroke-width', isVisited || isPruned ? '2' : '1');
+        line.setAttribute('stroke-dasharray', isPruned ? '4,4' : 'none');
+        svg.appendChild(line);
+      }
+    }
+  }
+
+  // 画节点
+  for (const key in positions) {
+    const pos = positions[key];
+    const g = document.createElementNS(NS, 'g');
+
+    const circle = document.createElementNS(NS, 'circle');
+    circle.setAttribute('cx', pos.x);
+    circle.setAttribute('cy', pos.y);
+    circle.setAttribute('r', pos.depth === 2 ? 16 : 20);
+
+    let fill = '#3a3f52';
+    if (prunedSet.has(key)) fill = '#f07070';
+    if (visitedSet.has(key)) fill = '#7ee0c1';
+    if (pos.node.isSolution && visitedSet.has(key)) fill = '#f0b460';
+    if (key === currentKey) fill = '#5b9cf6';
+
+    circle.setAttribute('fill', fill);
+    circle.setAttribute('stroke', '#fff');
+    circle.setAttribute('stroke-width', '1');
+    g.appendChild(circle);
+
+    const text = document.createElementNS(NS, 'text');
+    text.setAttribute('x', pos.x);
+    text.setAttribute('y', pos.y + 4);
+    text.setAttribute('text-anchor', 'middle');
+    text.setAttribute('fill', '#fff');
+    text.setAttribute('font-size', '10');
+    text.setAttribute('font-family', 'monospace');
+    text.textContent = pos.node.label;
+    g.appendChild(text);
+
+    if (pos.node.norm !== undefined) {
+      const normText = document.createElementNS(NS, 'text');
+      normText.setAttribute('x', pos.x);
+      normText.setAttribute('y', pos.y + 32);
+      normText.setAttribute('text-anchor', 'middle');
+      normText.setAttribute('fill', '#9ba1b5');
+      normText.setAttribute('font-size', '9');
+      normText.textContent = '||v||²=' + pos.node.norm;
+      g.appendChild(normText);
+    }
+
+    svg.appendChild(g);
+  }
+
+  // 层级标签
+  const labels = ['第1层 (v₃)', '第2层 (v₂)', '第3层 (v₁)'];
+  const ys = [50, 150, 270];
+  for (let i = 0; i < 3; i++) {
+    const t = document.createElementNS(NS, 'text');
+    t.setAttribute('x', 30);
+    t.setAttribute('y', ys[i] + 4);
+    t.setAttribute('fill', '#9ba1b5');
+    t.setAttribute('font-size', '11');
+    t.textContent = labels[i];
+    svg.appendChild(t);
+  }
+}
+
+function getStepState(step) {
+  const visited = new Set();
+  const pruned = new Set();
+  let current = null;
+
+  // DFS顺序访问节点
+  const dfsOrder = [];
+  function dfs(node) {
+    dfsOrder.push(node);
+    if (node.children) {
+      for (const child of node.children) {
+        dfs(child);
+      }
+    }
+  }
+  dfs(treeData);
+
+  for (let i = 0; i <= step && i < dfsOrder.length; i++) {
+    const n = dfsOrder[i];
+    const key = n._posKey;
+    if (currentMode === 'pruned' && n.pruned) {
+      pruned.add(key);
+      // 剪枝节点的子节点也标记为剪枝
+      if (n.children) {
+        function markPruned(node) {
+          pruned.add(node._posKey);
+          if (node.children) node.children.forEach(markPruned);
+        }
+        n.children.forEach(markPruned);
+      }
+      continue;
+    }
+    visited.add(key);
+    if (i === step) current = key;
+  }
+
+  return { visited, pruned, current };
+}
+
+function updateTree() {
+  const { visited, pruned, current } = getStepState(stepIndex);
+  drawTree(visited, current, pruned);
+
+  const dfsOrder = [];
+  function dfs(node) {
+    dfsOrder.push(node);
+    if (node.children) node.children.forEach(dfs);
+  }
+  dfs(treeData);
+
+  if (stepIndex < dfsOrder.length) {
+    const n = dfsOrder[stepIndex];
+    let msg = `步骤 ${stepIndex + 1}/${dfsOrder.length}: 访问节点 ${n.label}`;
+    if (n.isSolution) msg += ' → 找到更短向量！更新半径 R';
+    if (n.pruned && currentMode === 'pruned') msg += ' → 被剪枝，跳过整个子树';
+    if (n.norm !== undefined) msg += `，部分长度 ||v||²=${n.norm}`;
+    document.getElementById('treeStatus').textContent = msg;
+  } else {
+    document.getElementById('treeStatus').textContent = '枚举完成！';
+    stopPlay();
+  }
+}
+
+function setMode(mode) {
+  currentMode = mode;
+  document.querySelectorAll('.tree-controls .btn').forEach(b => b.classList.remove('active'));
+  event.target.classList.add('active');
+  stepIndex = 0;
+  updateTree();
+}
+
+function resetTree() {
+  stopPlay();
+  stepIndex = 0;
+  updateTree();
+}
+
+function stepTree() {
+  const dfsOrder = [];
+  function dfs(node) { dfsOrder.push(node); if (node.children) node.children.forEach(dfs); }
+  dfs(treeData);
+  if (stepIndex < dfsOrder.length - 1) {
+    stepIndex++;
+    updateTree();
+  }
+}
+
+function autoPlay() {
+  if (isPlaying) { stopPlay(); return; }
+  isPlaying = true;
+  document.querySelectorAll('.tree-controls .btn').forEach(b => {
+    if (b.textContent === '自动播放') b.textContent = '暂停';
+  });
+  playInterval = setInterval(() => {
+    const dfsOrder = [];
+    function dfs(node) { dfsOrder.push(node); if (node.children) node.children.forEach(dfs); }
+    dfs(treeData);
+    if (stepIndex >= dfsOrder.length - 1) { stopPlay(); return; }
+    stepIndex++;
+    updateTree();
+  }, 800);
+}
+
+function stopPlay() {
+  isPlaying = false;
+  if (playInterval) clearInterval(playInterval);
+  document.querySelectorAll('.tree-controls .btn').forEach(b => {
+    if (b.textContent === '暂停') b.textContent = '自动播放';
+  });
+}
+
+// 初始化
+updateTree();
+
+// ===== 剪枝对比可视化 =====
+const pruningSvg = document.getElementById('pruningSvg');
+function drawPruningComparison() {
+  pruningSvg.innerHTML = '';
+  const W = 800, H = 280;
+
+  // 左侧：标准球形剪枝
+  const cx1 = 180, cy1 = 140;
+  // 画球（椭圆表示）
+  for (let r = 100; r > 20; r -= 20) {
+    const ell = document.createElementNS(NS, 'ellipse');
+    ell.setAttribute('cx', cx1);
+    ell.setAttribute('cy', cy1);
+    ell.setAttribute('rx', r * 1.2);
+    ell.setAttribute('ry', r);
+    ell.setAttribute('fill', 'none');
+    ell.setAttribute('stroke', r === 100 ? '#5b9cf6' : '#3a3f52');
+    ell.setAttribute('stroke-width', r === 100 ? '2' : '1');
+    ell.setAttribute('stroke-dasharray', r === 100 ? 'none' : '3,3');
+    pruningSvg.appendChild(ell);
+  }
+  // 格点
+  const points1 = [[0,0],[1,0],[-1,0],[0,1],[0,-1],[1,1],[-1,-1],[2,0],[-2,0],[0,2],[0,-2],[1,-1],[-1,1],[2,1],[-2,-1]];
+  points1.forEach(([px, py]) => {
+    const x = cx1 + px * 30;
+    const y = cy1 + py * 30;
+    const dist = Math.sqrt(px*px + py*py) * 30;
+    const c = document.createElementNS(NS, 'circle');
+    c.setAttribute('cx', x);
+    c.setAttribute('cy', y);
+    c.setAttribute('r', 4);
+    c.setAttribute('fill', dist <= 100 ? '#7ee0c1' : '#3a3f52');
+    pruningSvg.appendChild(c);
+  });
+  const t1 = document.createElementNS(NS, 'text');
+  t1.setAttribute('x', cx1); t1.setAttribute('y', 30);
+  t1.setAttribute('text-anchor', 'middle'); t1.setAttribute('fill', '#5b9cf6');
+  t1.setAttribute('font-size', '13'); t1.setAttribute('font-weight', 'bold');
+  t1.textContent = '标准球形剪枝 (R²)';
+  pruningSvg.appendChild(t1);
+
+  // 右侧：概率剪枝（逐层收缩）
+  const cx2 = 580, cy2 = 140;
+  // 画多层收缩的椭圆
+  const radii = [100, 75, 50, 30];
+  const colors = ['#5b9cf6', '#7ee0c1', '#f0b460', '#f07070'];
+  radii.forEach((r, i) => {
+    const ell = document.createElementNS(NS, 'ellipse');
+    ell.setAttribute('cx', cx2);
+    ell.setAttribute('cy', cy2);
+    ell.setAttribute('rx', r * 1.2);
+    ell.setAttribute('ry', r);
+    ell.setAttribute('fill', 'none');
+    ell.setAttribute('stroke', colors[i]);
+    ell.setAttribute('stroke-width', '2');
+    ell.setAttribute('opacity', 0.6);
+    pruningSvg.appendChild(ell);
+  });
+  // 格点
+  points1.forEach(([px, py]) => {
+    const x = cx2 + px * 30;
+    const y = cy2 + py * 30;
+    const dist = Math.sqrt(px*px + py*py) * 30;
+    const c = document.createElementNS(NS, 'circle');
+    c.setAttribute('cx', x);
+    c.setAttribute('cy', y);
+    c.setAttribute('r', 4);
+    let fill = '#3a3f52';
+    if (dist <= 30) fill = '#f07070';
+    else if (dist <= 50) fill = '#f0b460';
+    else if (dist <= 75) fill = '#7ee0c1';
+    else if (dist <= 100) fill = '#5b9cf6';
+    c.setAttribute('fill', fill);
+    pruningSvg.appendChild(c);
+  });
+  const t2 = document.createElementNS(NS, 'text');
+  t2.setAttribute('x', cx2); t2.setAttribute('y', 30);
+  t2.setAttribute('text-anchor', 'middle'); t2.setAttribute('fill', '#7ee0c1');
+  t2.setAttribute('font-size', '13'); t2.setAttribute('font-weight', 'bold');
+  t2.textContent = '概率剪枝 (逐层递减 Rₖ²)';
+  pruningSvg.appendChild(t2);
+
+  // 标签
+  const labels = [
+    { x: cx2 + 130, y: cy2 - 80, color: '#5b9cf6', text: '深层预算大' },
+    { x: cx2 + 100, y: cy2 - 40, color: '#7ee0c1', text: '中层预算中' },
+    { x: cx2 + 70, y: cy2, color: '#f0b460', text: '浅层预算小' },
+    { x: cx2 + 40, y: cy2 + 40, color: '#f07070', text: '最严约束' },
+  ];
+  labels.forEach(l => {
+    const t = document.createElementNS(NS, 'text');
+    t.setAttribute('x', l.x); t.setAttribute('y', l.y);
+    t.setAttribute('fill', l.color); t.setAttribute('font-size', '10');
+    t.textContent = l.text;
+    pruningSvg.appendChild(t);
+  });
+}
+drawPruningComparison();
+</script>
+</body>
+</html>
